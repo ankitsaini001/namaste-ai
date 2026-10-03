@@ -1,0 +1,40 @@
+# Local development services. The apps themselves run on the host (see README).
+name: mmm-dev
+
+services:
+  mongo:
+    image: mongo:8.0
+    # A single-node replica set: MongoDB transactions need one.
+    command: ['--replSet', 'rs0', '--bind_ip_all', '--port', '27017']
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      # Initiates the replica set on first start, then reports healthy once this node is primary.
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - >-
+          try { rs.status() } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] }) }
+          quit(db.hello().isWritablePrimary ? 0 : 1)
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 10s
+
+  mailpit:
+    image: axllent/mailpit:v1.31
+    ports:
+      - '1025:1025' # SMTP
+      - '8025:8025' # Web UI: http://localhost:8025
+    healthcheck:
+      test: ['CMD', '/mailpit', 'readyz']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mongo-data:

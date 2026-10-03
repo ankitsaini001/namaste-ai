@@ -12,7 +12,9 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "infra:up": "docker compose -f infra/docker-compose.dev.yml up -d --wait",
+    "infra:down": "docker compose -f infra/docker-compose.dev.yml down"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
