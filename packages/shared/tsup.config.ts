@@ -1,6 +1,6 @@
 import { defineConfig } from 'tsup';
 
-export default defineConfig({
+export default defineConfig((options) => ({
   entry: ['src/index.ts'],
   format: ['esm', 'cjs'],
   dts: {
@@ -8,6 +8,7 @@ export default defineConfig({
     compilerOptions: { ignoreDeprecations: '6.0' },
   },
   sourcemap: true,
-  clean: true,
+  // Never empty dist/ in watch mode: the apps would briefly lose the type declarations.
+  clean: !options.watch,
   target: 'es2023',
-});
+}));

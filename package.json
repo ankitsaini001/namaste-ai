@@ -7,6 +7,7 @@
   },
   "scripts": {
     "build": "turbo run build",
+    "dev": "pnpm infra:up && pnpm dev:apps",
     "dev:apps": "turbo run dev dev:worker",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
