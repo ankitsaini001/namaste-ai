@@ -8,7 +8,8 @@ gallery. Tagline: _The calm behind the celebration._
 ## Source documents
 
 The specs live in `docs/` as PDFs. They are **gitignored** (the GitHub repo is public), so they
-exist only on the developer's machine.
+exist only on the developer's machine. The one exception is `docs/project-status.md`, which is
+committed.
 
 | File                          | What it decides                                        |
 | ----------------------------- | ------------------------------------------------------ |
@@ -136,7 +137,8 @@ These decisions override the PDFs:
 
 - Commit locally on `main`, one commit per logical step, Conventional Commit messages.
 - **Never push to GitHub without the owner's explicit permission.**
-- `docs/` and `.env*` files (except `.env.example`) are never committed.
+- `docs/` (except `docs/project-status.md`) and `.env*` files (except `.env.example`) are never
+  committed.
 
 ## Commands
 

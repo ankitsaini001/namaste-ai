@@ -18,8 +18,10 @@ coverage/
 .env.*
 !.env.example
 
-# Design documents stay local and are never committed (the GitHub repo is public)
-docs/
+# Design documents stay local and are never committed (the GitHub repo is public),
+# except the progress log.
+docs/*
+!docs/project-status.md
 
 # Logs and OS files
 *.log
