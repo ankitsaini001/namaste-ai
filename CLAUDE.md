@@ -129,7 +129,7 @@ CI (`.github/workflows/ci.yml`) runs `pnpm install --frozen-lockfile`, `pnpm for
 
 | Service | Address                                                                              |
 | ------- | ------------------------------------------------------------------------------------ |
-| Web     | http://localhost:3000                                                                |
+| Web     | http://localhost:3000 (homepage), http://localhost:3000/status (API + MongoDB check) |
 | API     | http://localhost:4000/v1                                                             |
 | MongoDB | `mongodb://localhost:27017/makemymarriage?directConnection=true` (replica set `rs0`) |
 | Mailpit | SMTP `localhost:1025`, UI http://localhost:8025                                      |

@@ -1,9 +1,15 @@
 import { LIMITS } from '@mmm/shared';
+import type { Metadata } from 'next';
 import { getApiReadiness, type ApiReadiness } from '@/lib/api-health';
 import { getPublicEnv, getServerEnv } from '@/lib/env';
 
 // Checked on every request, so the status is always current.
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'System status · Make My Marriage',
+  robots: { index: false, follow: false },
+};
 
 const STATUS: Record<ApiReadiness['state'], { label: string; dot: string }> = {
   ready: { label: 'API ready', dot: 'bg-emerald-500' },
@@ -11,7 +17,8 @@ const STATUS: Record<ApiReadiness['state'], { label: string; dot: string }> = {
   unreachable: { label: 'API unreachable', dot: 'bg-red-500' },
 };
 
-export default async function HomePage() {
+/** Developer check that the web app, the API and MongoDB are all working. Not linked anywhere. */
+export default async function StatusPage() {
   const readiness = await getApiReadiness(getServerEnv().API_URL);
   const { NEXT_PUBLIC_API_URL } = getPublicEnv();
   const status = STATUS[readiness.state];
@@ -22,10 +29,8 @@ export default async function HomePage() {
         <p className="text-sm font-medium tracking-widest text-rose-700 uppercase">
           Make My Marriage
         </p>
-        <h1 className="text-4xl font-semibold">The calm behind the celebration.</h1>
-        <p className="text-stone-600">
-          Project scaffold. Features arrive one at a time, following the release plan.
-        </p>
+        <h1 className="text-4xl font-semibold">System status</h1>
+        <p className="text-stone-600">Checks the web app, the API and MongoDB.</p>
       </header>
 
       <section className="space-y-3 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">

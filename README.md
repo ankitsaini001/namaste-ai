@@ -36,8 +36,8 @@ pnpm dev
 ```
 
 `pnpm dev` starts MongoDB and Mailpit in Docker (and waits until they're healthy), then runs every
-app in watch mode. Open http://localhost:3000. The home page shows **API ready** when the web app,
-the API and MongoDB are all working.
+app in watch mode. Open http://localhost:3000 for the homepage. http://localhost:3000/status shows
+**API ready** when the web app, the API and MongoDB are all working.
 
 ## Local services
 
