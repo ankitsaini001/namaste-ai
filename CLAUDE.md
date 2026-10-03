@@ -108,4 +108,47 @@ These decisions override the PDFs:
 
 ## Commands
 
-_To be filled in when the scaffold is complete._
+Run from the repository root (Node 24, pnpm 10.28.2 via Corepack).
+
+| Command                                      | What it does                                                      |
+| -------------------------------------------- | ----------------------------------------------------------------- |
+| `pnpm install`                               | Install all workspaces                                            |
+| `pnpm dev`                                   | `infra:up`, then all apps in watch mode                           |
+| `pnpm dev:apps`                              | All apps in watch mode, without Docker                            |
+| `pnpm infra:up` / `pnpm infra:down`          | Start / stop MongoDB and Mailpit (`infra/docker-compose.dev.yml`) |
+| `pnpm build`                                 | Build everything (`@mmm/shared` first)                            |
+| `pnpm test` / `pnpm lint` / `pnpm typecheck` | Vitest / ESLint / TypeScript in every package                     |
+| `pnpm format` / `pnpm format:check`          | Prettier write / check                                            |
+| `pnpm --filter @mmm/api test`                | One package only (`@mmm/api`, `@mmm/web`, `@mmm/shared`)          |
+| `pnpm --filter @mmm/api dev:worker`          | Worker alone, in watch mode                                       |
+
+CI (`.github/workflows/ci.yml`) runs `pnpm install --frozen-lockfile`, `pnpm format:check`, then
+`pnpm turbo run lint typecheck test build`. Run the same before committing a step.
+
+## Local setup
+
+| Service | Address                                                                              |
+| ------- | ------------------------------------------------------------------------------------ |
+| Web     | http://localhost:3000                                                                |
+| API     | http://localhost:4000/v1                                                             |
+| MongoDB | `mongodb://localhost:27017/makemymarriage?directConnection=true` (replica set `rs0`) |
+| Mailpit | SMTP `localhost:1025`, UI http://localhost:8025                                      |
+
+- Env files: `apps/api/.env` and `apps/web/.env.local`, copied from the `.env.example` next to
+  them. Both apps validate env with zod at startup and exit with a readable message if invalid.
+- `@mmm/shared` is consumed from its built `dist/`. After changing it outside `pnpm dev`, run
+  `pnpm build` (Turbo builds it before dependants automatically).
+
+## Working notes
+
+- API tests use Vitest globals (`describe`, `it`, `vi`) because the API compiles as CommonJS;
+  web and shared tests import from `vitest`. HTTP tests reuse `configureApp()` from
+  `src/app.setup.ts` so they exercise the real prefix, filter, request ID and CORS.
+- API HTTP tests must not need MongoDB: provide a fake `DatabaseHealthIndicator` (or other
+  provider) instead of importing `AppModule`.
+- Throw `AppException(status, code, message, field?, details?)` for every expected error; the
+  global filter turns anything else into `INTERNAL_ERROR` without leaking details.
+- `dev` (API) and `dev:worker` compile to separate folders (`dist/`, `dist-worker/`) so both can
+  watch at once; production uses `dist/main.js` and `dist/worker.js`.
+- TypeScript stays on 6.0.x until typescript-eslint supports newer versions.
+- `turbo.json` sets `agentGuidance: false`, so Turborepo doesn't write an `AGENTS.md`.
