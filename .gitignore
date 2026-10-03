@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-worker/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Tooling
+.turbo/
+coverage/
+
+# Environment (only .env.example files are committed)
+.env
+.env.*
+!.env.example
+
+# Design documents stay local and are never committed (the GitHub repo is public)
+docs/
+
+# Logs and OS files
+*.log
+.DS_Store
