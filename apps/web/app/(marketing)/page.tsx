@@ -1,3 +1,4 @@
+import { Features } from '@/components/home/features';
 import { Hero } from '@/components/home/hero';
 import { HowItWorks } from '@/components/home/how-it-works';
 import { Problem } from '@/components/home/problem';
@@ -12,6 +13,7 @@ export default function HomePage() {
         <Hero />
         <Problem />
         <HowItWorks />
+        <Features />
       </main>
     </>
   );
