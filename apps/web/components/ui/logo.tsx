@@ -29,7 +29,7 @@ export function Logo({ className }: { className?: string }) {
           M
         </text>
       </svg>
-      <span className="font-serif text-[22px] leading-none font-medium tracking-[-0.02em] text-ink">
+      <span className="font-serif text-xl leading-none font-medium tracking-[-0.02em] whitespace-nowrap text-ink sm:text-[22px]">
         Make My Marriage
       </span>
     </Link>
