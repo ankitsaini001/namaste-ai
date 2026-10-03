@@ -1,9 +1,10 @@
 import { Controller, Get, HttpStatus, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { errorResponseSchema, healthResponseSchema } from '@mmm/shared';
+import { errorResponseSchema, healthResponseSchema, readinessResponseSchema } from '@mmm/shared';
 import request from 'supertest';
 import { configureApp } from '../src/app.setup';
 import { AppException } from '../src/common/app.exception';
+import { DatabaseHealthIndicator } from '../src/database/database-health.indicator';
 import { HealthController } from '../src/modules/health/health.controller';
 
 const WEB_ORIGIN = 'http://localhost:3000';
@@ -32,10 +33,13 @@ class ErrorsController {
 
 describe('HTTP pipeline', () => {
   let app: INestApplication;
+  // A fake database check, so these tests need no MongoDB.
+  const database = { isUp: vi.fn<() => Promise<boolean>>() };
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       controllers: [HealthController, ErrorsController],
+      providers: [{ provide: DatabaseHealthIndicator, useValue: database }],
     }).compile();
     app = moduleRef.createNestApplication({ logger: false });
     configureApp(app, { webOrigin: WEB_ORIGIN });
@@ -50,6 +54,24 @@ describe('HTTP pipeline', () => {
     const res = await request(app.getHttpServer()).get('/v1/health').expect(200);
     expect(healthResponseSchema.parse(res.body)).toEqual({ status: 'ok' });
     expect(res.headers['x-request-id']).toMatch(REQUEST_ID);
+  });
+
+  it('GET /v1/health/ready returns ok when the database is up', async () => {
+    database.isUp.mockResolvedValueOnce(true);
+    const res = await request(app.getHttpServer()).get('/v1/health/ready').expect(200);
+    expect(readinessResponseSchema.parse(res.body)).toEqual({
+      status: 'ok',
+      checks: { database: 'up' },
+    });
+  });
+
+  it('GET /v1/health/ready returns 503 SERVICE_UNAVAILABLE when the database is down', async () => {
+    database.isUp.mockResolvedValueOnce(false);
+    const res = await request(app.getHttpServer()).get('/v1/health/ready').expect(503);
+    const body = errorResponseSchema.parse(res.body);
+    expect(body.error.code).toBe('SERVICE_UNAVAILABLE');
+    expect(body.error.details).toEqual({ checks: { database: 'down' } });
+    expect(body.requestId).toBe(res.headers['x-request-id']);
   });
 
   it('unknown routes return the NOT_FOUND envelope with the same request ID', async () => {

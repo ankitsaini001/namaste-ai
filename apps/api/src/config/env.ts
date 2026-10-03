@@ -2,7 +2,13 @@ import { z } from 'zod';
 
 const baseEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  MONGODB_URI: z
+    .string()
+    .regex(/^mongodb(\+srv)?:\/\//, 'Must start with mongodb:// or mongodb+srv://'),
 });
+
+/** Variables both the API and the worker need. */
+export type BaseEnv = z.infer<typeof baseEnvSchema>;
 
 export const apiEnvSchema = baseEnvSchema.extend({
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
