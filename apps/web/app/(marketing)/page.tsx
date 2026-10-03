@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { DemoBanner } from '@/components/home/demo-banner';
-import { Family } from '@/components/home/family';
 import { Faq } from '@/components/home/faq';
 import { Features } from '@/components/home/features';
 import { FinalCta } from '@/components/home/final-cta';
@@ -41,7 +40,6 @@ export default function HomePage() {
         <Problem />
         <HowItWorks />
         <Features />
-        <Family />
         <GuestView />
         <DemoBanner />
         <Privacy />

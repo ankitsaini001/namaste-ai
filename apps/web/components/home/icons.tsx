@@ -2,13 +2,10 @@ import {
   Ban,
   ClipboardList,
   EyeOff,
-  House,
   Images,
-  Link2,
   Lock,
   SlidersHorizontal,
   UserRoundSearch,
-  Users,
   type LucideIcon,
 } from 'lucide-react';
 import type { IconKey } from '@/content/home';
@@ -18,9 +15,6 @@ const ICONS: Record<IconKey, LucideIcon> = {
   users: UserRoundSearch,
   headcount: ClipboardList,
   photos: Images,
-  couple: Users,
-  family: House,
-  link: Link2,
   lock: Lock,
   hidden: EyeOff,
   'no-ads': Ban,

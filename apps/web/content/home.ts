@@ -6,17 +6,7 @@ import { ROUTES } from '@/lib/routes';
  * WhatsApp sending, and no promise that all data stays in India.
  */
 
-export type IconKey =
-  | 'users'
-  | 'headcount'
-  | 'photos'
-  | 'couple'
-  | 'family'
-  | 'link'
-  | 'lock'
-  | 'hidden'
-  | 'no-ads'
-  | 'control';
+export type IconKey = 'users' | 'headcount' | 'photos' | 'lock' | 'hidden' | 'no-ads' | 'control';
 
 export const nav = {
   links: [
@@ -136,24 +126,6 @@ export const features = {
     text: string;
     points: readonly string[];
   }[];
-};
-
-export const family = {
-  eyebrow: 'Together',
-  title: 'Planned together, by the whole family',
-  columns: [
-    { icon: 'couple', title: 'The couple', text: 'Run the plan and choose who helps.' },
-    {
-      icon: 'family',
-      title: 'Parents and siblings',
-      text: 'Add relatives, track payments and tick off tasks.',
-    },
-    { icon: 'link', title: 'Guests', text: 'Need nothing but a link. No app, no sign-up.' },
-  ],
-} as const satisfies {
-  eyebrow: string;
-  title: string;
-  columns: readonly { icon: IconKey; title: string; text: string }[];
 };
 
 export const guestView = {
