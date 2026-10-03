@@ -81,6 +81,22 @@ deliberate decision.
 - MongoDB must run as a replica set everywhere, including locally (transactions).
 - Never log tokens, login codes, guest emails or phone numbers.
 
+## Design
+
+- The UX & Visual Design Brief is the design source of truth. The Google Stitch project
+  "Make My Marriage Landing Page" (Stitch MCP server `stitch`, project `1672736047916376677`)
+  is a visual reference only: never copy its HTML or its wording without checking it against
+  the PRD and the brief.
+- Tokens (colours, type scale, shadows) live in `apps/web/app/globals.css` (`@theme`). Fonts:
+  Fraunces (headings) and Inter (body) via `next/font`.
+- Champagne `#C9AE84` is for lines, outlines and decoration only. Small text and icons use
+  `champagne-ink`; "Attending" uses `green-ink` on `green-tint`. Keep WCAG AA contrast, 16px+
+  body text and 44px+ tap targets.
+- Homepage copy lives in `apps/web/content/home.ts`; `content/home.spec.ts` blocks claims the
+  PRD rules out (pricing, "free", SMS, full-resolution photos, data staying in India).
+- Product mockups use the PRD's real fields and sample couple Aarav & Diya (14 Feb 2027,
+  Jaipur), wrapped in `Mockup` so screen readers get one description.
+
 ## Resolved document conflicts
 
 These decisions override the PDFs:
@@ -152,3 +168,7 @@ CI (`.github/workflows/ci.yml`) runs `pnpm install --frozen-lockfile`, `pnpm for
   watch at once; production uses `dist/main.js` and `dist/worker.js`.
 - TypeScript stays on 6.0.x until typescript-eslint supports newer versions.
 - `turbo.json` sets `agentGuidance: false`, so Turborepo doesn't write an `AGENTS.md`.
+- After removing or moving a Next.js route, delete `apps/web/.next` if `typecheck` reports a
+  missing module under `.next/dev/types` (stale types from an earlier dev server).
+- Tailwind: don't combine `hidden` with a component's own display class (`inline-flex`); wrap the
+  component instead, or the display class may win.
