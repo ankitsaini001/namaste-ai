@@ -17,6 +17,7 @@ exist only on the developer's machine.
 | `docs/03-database-design.pdf` | Collections, fields, indexes, transactions, enums      |
 | `docs/04-api-design.pdf`      | Endpoints, envelopes, error codes, rate limits         |
 | `docs/05-ux-design-brief.pdf` | Look and feel                                          |
+| `docs/project-status.md`      | What has been built so far, and what's next            |
 
 When documents disagree: the PRD wins on product behaviour; for technical detail, API Design wins
 over Database Design, which wins over System Design. Known conflicts are already resolved in
@@ -29,6 +30,21 @@ Build features one at a time, in the PRD's release order:
 3. Photos and documents — GAL, UPL, QR, DOC
 4. Money and planning — MON, VEN (my vendors), TSK, SHOP
 5. Extras — vendor discovery, DEMO, starter checklist
+
+## Project status
+
+`docs/project-status.md` tracks progress. Read it at the start of a session to see what's done
+and what's next.
+
+**Whenever a major feature is finished** (a PRD feature such as AUTH-02, or a complete slice such
+as the homepage), update it before reporting the feature as done:
+
+1. Add an entry at the top of the feature log: date, what was built, decisions, verification,
+   known gaps and follow-ups, and the commit range.
+2. Update "At a glance" and the release phases table.
+3. Update "Last updated".
+
+Don't log small fixes or refactors on their own; fold them into the next feature's entry.
 
 ## Stack
 
