@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": {
+    // Separate output so `dev` (API) and `dev:worker` can watch at the same time.
+    "outDir": "dist-worker"
+  }
+}

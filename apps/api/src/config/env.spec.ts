@@ -1,4 +1,4 @@
-import { validateApiEnv } from './env';
+import { validateApiEnv, validateWorkerEnv } from './env';
 
 const MONGODB_URI = 'mongodb://localhost:27017/makemymarriage?directConnection=true';
 
@@ -24,5 +24,15 @@ describe('validateApiEnv', () => {
     expect(() =>
       validateApiEnv({ WEB_ORIGIN: 'http://localhost:3000', MONGODB_URI: 'postgres://db' }),
     ).toThrow(/MONGODB_URI: Must start with mongodb/);
+  });
+});
+
+describe('validateWorkerEnv', () => {
+  it('needs only the database settings', () => {
+    expect(validateWorkerEnv({ MONGODB_URI })).toEqual({ NODE_ENV: 'development', MONGODB_URI });
+  });
+
+  it('refuses to start without MONGODB_URI', () => {
+    expect(() => validateWorkerEnv({})).toThrow(/Invalid environment variables for the worker/);
   });
 });

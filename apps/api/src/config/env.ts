@@ -38,3 +38,10 @@ function parseEnv<T extends z.ZodType>(
 
 export const validateApiEnv = (raw: Record<string, unknown>): ApiEnv =>
   parseEnv(apiEnvSchema, raw, 'API');
+
+export const workerEnvSchema = baseEnvSchema;
+
+export type WorkerEnv = z.infer<typeof workerEnvSchema>;
+
+export const validateWorkerEnv = (raw: Record<string, unknown>): WorkerEnv =>
+  parseEnv(workerEnvSchema, raw, 'worker');
