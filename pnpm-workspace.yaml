@@ -2,10 +2,8 @@ packages:
   - apps/*
   - packages/*
 
-# Versions shared by several workspaces. Reference them with "catalog:" in package.json.
 catalog:
   '@types/node': ^24.19.1
-  # typescript-eslint supports TypeScript < 6.1, so stay on 6.0.x.
   typescript: ~6.0.3
   vite: ^8.3.2
   vitest: ^5.0.3
