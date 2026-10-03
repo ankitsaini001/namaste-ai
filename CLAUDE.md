@@ -10,19 +10,20 @@ gallery. Tagline: _The calm behind the celebration._
 The specs live in `docs/` as PDFs. They are **gitignored** (the GitHub repo is public), so they
 exist only on the developer's machine.
 
-| File                          | What it decides                                          |
-| ----------------------------- | -------------------------------------------------------- |
-| `docs/01-prd.pdf`             | Product behaviour, limits, priorities, release phases    |
-| `docs/02-system-design.pdf`   | Architecture, code organisation (§8), deployment (§19)   |
-| `docs/03-database-design.pdf` | Collections, fields, indexes, transactions, enums        |
-| `docs/04-api-design.pdf`      | Endpoints, envelopes, error codes, rate limits           |
-| `docs/05-ux-design-brief.pdf` | Look and feel                                            |
+| File                          | What it decides                                        |
+| ----------------------------- | ------------------------------------------------------ |
+| `docs/01-prd.pdf`             | Product behaviour, limits, priorities, release phases  |
+| `docs/02-system-design.pdf`   | Architecture, code organisation (§8), deployment (§19) |
+| `docs/03-database-design.pdf` | Collections, fields, indexes, transactions, enums      |
+| `docs/04-api-design.pdf`      | Endpoints, envelopes, error codes, rate limits         |
+| `docs/05-ux-design-brief.pdf` | Look and feel                                          |
 
 When documents disagree: the PRD wins on product behaviour; for technical detail, API Design wins
 over Database Design, which wins over System Design. Known conflicts are already resolved in
 [Resolved document conflicts](#resolved-document-conflicts) — follow that section, not the PDFs.
 
 Build features one at a time, in the PRD's release order:
+
 1. Core — AUTH, WED, ORG, EVT, GST, INV, RSVP, EML, WA, DASH
 2. Guest experience — WEB, THM, LIVE
 3. Photos and documents — GAL, UPL, QR, DOC
