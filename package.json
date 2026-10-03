@@ -1,0 +1,19 @@
+{
+  "name": "make-my-marriage",
+  "private": true,
+  "packageManager": "pnpm@10.28.2",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev:apps": "turbo run dev dev:worker",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test"
+  },
+  "devDependencies": {
+    "turbo": "^2.11.7",
+    "typescript": "catalog:"
+  }
+}
