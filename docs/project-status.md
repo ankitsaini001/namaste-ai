@@ -1,6 +1,6 @@
 # Make My Marriage — Project Status
 
-_Last updated: 3 October 2026_
+_Last updated: 12 October 2026_
 
 A running log of what has been built. Add an entry whenever a major feature is finished (see
 "How to update this file" at the end).
@@ -9,10 +9,10 @@ A running log of what has been built. Add an entry whenever a major feature is f
 
 | Item              | Status                                                               |
 | ----------------- | -------------------------------------------------------------------- |
-| Current phase     | Phase 1 — Core (not started; foundations and homepage done)          |
-| Latest feature    | Public homepage                                                      |
-| Up next           | Email-code login (AUTH-02), the first full feature slice             |
-| Main branch       | `dev` (pushed to GitHub as ankitsaini001); `main` is local only      |
+| Current phase     | Phase 1 — Core (in progress)                                         |
+| Latest feature    | Email-code login (AUTH-02 to AUTH-06)                                |
+| Up next           | Google sign-in (AUTH-01, AUTH-07), then wedding setup (WED)          |
+| Main branch       | `dev` on GitHub; login is on `feat/auth-email-code`, not yet merged  |
 | Code checks       | Format, lint, typecheck, tests and build all pass                    |
 
 ## Release phases (PRD §31)
@@ -21,7 +21,7 @@ A running log of what has been built. Add an entry whenever a major feature is f
 | ----------------------- | -------------------------------------------- | ----------- |
 | Foundations             | Monorepo scaffold, local setup, CI           | ✅ Done     |
 | Public homepage         | Marketing page from the UX brief             | ✅ Done     |
-| 1. Core                 | AUTH, WED, ORG, EVT, GST, INV, RSVP, EML, WA, DASH | ⏳ Next |
+| 1. Core                 | AUTH, WED, ORG, EVT, GST, INV, RSVP, EML, WA, DASH | ⏳ In progress (email-code login done) |
 | 2. Guest experience     | WEB, THM, LIVE                               | Not started |
 | 3. Photos and documents | GAL, UPL, QR, DOC                            | Not started |
 | 4. Money and planning   | MON, VEN, TSK, SHOP                          | Not started |
@@ -31,6 +31,63 @@ A running log of what has been built. Add an entry whenever a major feature is f
 ## Feature log
 
 Newest first.
+
+### 3. Email-code login (AUTH-02 to AUTH-06) — 12 October 2026
+
+**What was built**
+
+- Organisers sign in at `/login` with a 6-digit code sent by email: enter an email, enter the
+  code (six boxes; pasting and phone autofill work), and new users give their name once. Signed-in
+  users land on `/app`, a placeholder until wedding setup exists, with "Log out". `/app` sends
+  anyone without a session to `/login` (`proxy.ts`). The homepage's "Log in" and "Start
+  planning" buttons now work.
+- API: `POST /v1/auth/email-code`, `POST /v1/auth/email-code/verify`, `POST /v1/auth/logout`,
+  `GET /v1/me`, `PATCH /v1/me`, with the PRD rules: 10-minute single-use codes, the same reply for
+  unknown emails, lockout after 5 wrong tries, 3 codes per email per 15 minutes, 10 code requests
+  per IP per hour, 30-day sessions in an HttpOnly, Secure, SameSite=Lax cookie. Codes and session
+  tokens are stored only as hashes.
+- Foundations every later feature reuses: request validation with the shared zod schemas
+  (`nestjs-zod`), the cross-site (`Origin`) check, MongoDB-backed rate limits, the worker's job
+  queue (claim with lock, retries after 30s/2m/10m/1h, postpone, crash recovery), the
+  notifications module and email delivery (Mailpit locally, Resend in production) with the daily
+  allowance and 20 reserved slots, the `@mmm/email-templates` package, and the migration command
+  (`pnpm db:migrate`).
+- Testing: API database tests with Testcontainers (real MongoDB in Docker), and the first
+  Playwright browser tests with automated accessibility checks, run in CI on pull requests.
+
+**Decisions**
+
+- Email code first; Google sign-in is the next small slice (it needs a Google Cloud OAuth client).
+- The login-code email goes through the worker job queue, as the System Design specifies.
+- `users.name` is null until AUTH-05 asks for it; login codes are kept an hour after expiry so the
+  screen can say "expired". Both are recorded in `CLAUDE.md` under resolved conflicts.
+- Login screens follow the brief and the Stitch Sign In design. Left out from Stitch: the
+  "end-to-end encrypted" claim, the "Atelier/Concierge" wording, and the bride photo on the
+  code screen. The Google button appears with AUTH-01.
+- The login form is rendered on the server, so it shows before JavaScript loads.
+- New git workflow: one branch per feature from `dev`, merged when done.
+
+**Verification**
+
+- 123 unit and database tests pass (API 71, web 34, shared 16, email templates 2), plus lint,
+  typecheck and build.
+- 6 Playwright tests pass at desktop and phone sizes, three runs in a row, including a simulated
+  CI run where Playwright starts the API, worker and web app itself. axe finds no WCAG 2.1 AA
+  violations on the login steps or `/app`.
+- Tested by hand against the real services: the code email arrives in Mailpit, the code signs
+  the user in, `/me` works, and logout ends the session.
+
+**Known gaps and follow-ups**
+
+- Not built yet: Google sign-in (AUTH-01, AUTH-07), joining a wedding as an organiser (ORG),
+  account deletion and the My Account page (AUTH-08), the demo (`/demo`), and the Terms and
+  Privacy pages linked from the login screen.
+- Production needs a Resend account and verified sending domain, `COOKIE_DOMAIN`,
+  `TRUST_PROXY`, and a real `LOGIN_CODE_SECRET`.
+- Local `pnpm dev` needs the file-watcher limit raised (see README troubleshooting).
+- Resend bounce and complaint webhooks and the suppression list come with EML.
+
+**Commits:** `b19acfa` … the commit adding this entry, on `feat/auth-email-code` (10 commits).
 
 ### 2. Public homepage — 3 October 2026
 

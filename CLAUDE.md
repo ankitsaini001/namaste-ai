@@ -56,7 +56,8 @@ Don't log small fixes or refactors on their own; fold them into the next feature
   no HTTP).
 - `packages/shared` (`@mmm/shared`): zod schemas, enums, limits and error codes used by both apps.
   Built with tsup to ESM + CJS; apps import the built `dist/`.
-- `packages/email-templates`: React Email templates — created with the first email (AUTH-02).
+- `packages/email-templates` (`@mmm/email-templates`): React Email designs, rendered to subject,
+  HTML and text. Built like `@mmm/shared`.
 - `infra/`: local Docker Compose now; production compose, Caddyfile and media worker later.
 - Database MongoDB Atlas (Mumbai); files in Cloudflare R2 via a Media Worker; email via Resend.
 
@@ -132,6 +133,10 @@ These decisions override the PDFs:
 - Tests use **Vitest** everywhere (the API via `unplugin-swc`), with Supertest for HTTP tests,
   Testcontainers for real-database tests and Playwright for end-to-end tests. No Jest.
 - Next.js 16 uses `proxy.ts` (formerly `middleware.ts`) for the login-cookie redirect.
+- `users.name` is `null` until someone who signed in with an email code gives their name (AUTH-05);
+  the Database Design marks it required.
+- `loginCodes` are deleted one hour after they expire (TTL), not at expiry, so the login screen can
+  say "expired" instead of "wrong code".
 
 ## Git
 
@@ -158,6 +163,9 @@ Run from the repository root (Node 24, pnpm 10.28.2 via Corepack).
 | `pnpm format` / `pnpm format:check`          | Prettier write / check                                            |
 | `pnpm --filter @mmm/api test`                | One package only (`@mmm/api`, `@mmm/web`, `@mmm/shared`)          |
 | `pnpm --filter @mmm/api dev:worker`          | Worker alone, in watch mode                                       |
+| `pnpm --filter @mmm/api test:unit`           | API tests without the database tests (no Docker needed)           |
+| `pnpm test:e2e`                              | Playwright browser tests (needs infra up and a build)             |
+| `pnpm db:migrate`                            | Build the API, apply migrations, sync indexes                     |
 
 CI (`.github/workflows/ci.yml`) runs `pnpm install --frozen-lockfile`, `pnpm format:check`, then
 `pnpm turbo run lint typecheck test build`. Run the same before committing a step.
@@ -191,5 +199,27 @@ CI (`.github/workflows/ci.yml`) runs `pnpm install --frozen-lockfile`, `pnpm for
 - `turbo.json` sets `agentGuidance: false`, so Turborepo doesn't write an `AGENTS.md`.
 - After removing or moving a Next.js route, delete `apps/web/.next` if `typecheck` reports a
   missing module under `.next/dev/types` (stale types from an earlier dev server).
+- API tests run in two Vitest projects: `unit` (`src/**/*.spec.ts`, `test/*.e2e-spec.ts`, no
+  database) and `db` (`test/*.int-spec.ts`), which starts one MongoDB container with Testcontainers
+  (needs Docker) and gives each test file its own database via `testMongoUri()`.
+- Database tests build a small Nest module (ConfigModule with `load`, `MongooseModule.forRoot`, the
+  feature module) and call `connection.syncIndexes()` themselves, since `autoIndex` is off in tests.
+- Every model must be registered somewhere in `AppModule`'s import tree, even if only the worker
+  uses it: `pnpm db:migrate` syncs indexes for the models the API knows about.
+- Background work: `JobQueue.enqueue(type, payload)` in the API; a provider decorated
+  `@HandlesJob(type)` in a module imported by `WorkerModule` runs it. Throw `JobPostponed(runAt)`
+  to reschedule without counting a failed attempt.
+- Email: call `NotificationsService.sendEmail({ kind, to, templateData, idempotencyKey })`. Add the
+  template to `@mmm/email-templates` and a case to `EmailRenderer`. Priority comes from the kind.
+- Rate limits: `RateLimitService.enforce(rule, subject, { limit, windowSeconds })` throws 429
+  `RATE_LIMITED` with `Retry-After`.
+- Signed-in endpoints use `@UseGuards(SessionGuard)` and `@CurrentAuth()`. Requests that change
+  data must send `Origin` = `WEB_ORIGIN` and JSON bodies, or `OriginGuard` returns 403
+  (`@AllowAnyOrigin()` for signed webhooks).
+- Web: browser calls go through `apiRequest()` / `authApi` (`lib/`), which throw `ApiError` with the
+  API's code and message. Read URL parameters in server components and pass them down, so pages
+  render without waiting for JavaScript.
+- Browser tests clear nothing between runs; repeated local runs within an hour can hit the per-IP
+  login limits. Clear `rateLimits` in MongoDB (see README troubleshooting).
 - Tailwind: don't combine `hidden` with a component's own display class (`inline-flex`); wrap the
   component instead, or the display class may win.
