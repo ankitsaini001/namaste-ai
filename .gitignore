@@ -26,3 +26,5 @@ docs/*
 # Logs and OS files
 *.log
 .DS_Store
+test-results/
+playwright-report/

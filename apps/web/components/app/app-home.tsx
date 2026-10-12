@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { Eyebrow } from '@/components/ui/eyebrow';
@@ -18,8 +18,11 @@ export function AppHome() {
 
   const signedOut = me.error instanceof ApiError && me.error.status === 401;
   const needsName = me.data?.needsName === true;
+  // Set while logging out, so the 401 that follows doesn't redirect with ?returnTo=/app.
+  const leaving = useRef(false);
 
   useEffect(() => {
+    if (leaving.current) return;
     if (signedOut) router.replace('/login?returnTo=/app');
     else if (needsName) router.replace('/login?step=name&returnTo=/app');
   }, [signedOut, needsName, router]);
@@ -27,8 +30,9 @@ export function AppHome() {
   const logout = useMutation({
     mutationFn: authApi.logout,
     onSuccess: () => {
-      queryClient.clear();
+      leaving.current = true;
       router.replace('/login');
+      queryClient.clear();
     },
   });
 
