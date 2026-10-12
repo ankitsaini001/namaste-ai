@@ -95,6 +95,7 @@ export class JobRunner implements OnApplicationBootstrap, BeforeApplicationShutd
         type: job.type,
         payload: job.payload,
         attempt: job.attempts,
+        maxAttempts: job.maxAttempts,
       });
       await this.finish(job, { status: 'done', finishedAt: this.now(), lastError: null });
     } catch (error) {

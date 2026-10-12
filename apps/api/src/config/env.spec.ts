@@ -28,11 +28,32 @@ describe('validateApiEnv', () => {
 });
 
 describe('validateWorkerEnv', () => {
-  it('needs only the database settings', () => {
-    expect(validateWorkerEnv({ MONGODB_URI })).toEqual({ NODE_ENV: 'development', MONGODB_URI });
+  it('needs only the database settings; email defaults to Mailpit over SMTP', () => {
+    expect(validateWorkerEnv({ MONGODB_URI })).toEqual({
+      NODE_ENV: 'development',
+      MONGODB_URI,
+      EMAIL_TRANSPORT: 'smtp',
+      SMTP_HOST: 'localhost',
+      SMTP_PORT: 1025,
+      EMAIL_FROM: 'Make My Marriage <no-reply@localhost>',
+      EMAIL_DAILY_LIMIT: 100,
+      EMAIL_RESERVED: 20,
+    });
   });
 
   it('refuses to start without MONGODB_URI', () => {
     expect(() => validateWorkerEnv({})).toThrow(/Invalid environment variables for the worker/);
+  });
+
+  it('requires a Resend API key when sending through Resend', () => {
+    expect(() => validateWorkerEnv({ MONGODB_URI, EMAIL_TRANSPORT: 'resend' })).toThrow(
+      /RESEND_API_KEY: Required when EMAIL_TRANSPORT=resend/,
+    );
+  });
+
+  it('keeps the reserved slots below the daily limit', () => {
+    expect(() =>
+      validateWorkerEnv({ MONGODB_URI, EMAIL_DAILY_LIMIT: '20', EMAIL_RESERVED: '20' }),
+    ).toThrow(/EMAIL_RESERVED/);
   });
 });

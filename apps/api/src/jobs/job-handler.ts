@@ -13,6 +13,7 @@ export type JobContext<P = Record<string, unknown>> = {
   type: JobType;
   payload: P;
   attempt: number;
+  maxAttempts: number;
 };
 
 export interface JobHandler<P = Record<string, unknown>> {

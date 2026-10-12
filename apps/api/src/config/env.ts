@@ -39,7 +39,39 @@ function parseEnv<T extends z.ZodType>(
 export const validateApiEnv = (raw: Record<string, unknown>): ApiEnv =>
   parseEnv(apiEnvSchema, raw, 'API');
 
-export const workerEnvSchema = baseEnvSchema;
+const emailEnvSchema = z.object({
+  // smtp = Mailpit locally; resend = production (System Design §13).
+  EMAIL_TRANSPORT: z.enum(['smtp', 'resend']).default('smtp'),
+  SMTP_HOST: z.string().min(1).default('localhost'),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(1025),
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM: z
+    .string()
+    .regex(/^(.+ <[^@\s]+@[^>\s]+>|[^@\s]+@[^@\s]+)$/, 'Use "Name <address>" or an address')
+    .default('Make My Marriage <no-reply@localhost>'),
+  // Resend's free plan: 100 a day, 20 always kept for login codes and organiser invitations.
+  EMAIL_DAILY_LIMIT: z.coerce.number().int().min(1).default(100),
+  EMAIL_RESERVED: z.coerce.number().int().min(0).default(20),
+});
+
+export const workerEnvSchema = baseEnvSchema
+  .extend(emailEnvSchema.shape)
+  .superRefine((env, ctx) => {
+    if (env.EMAIL_TRANSPORT === 'resend' && !env.RESEND_API_KEY) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['RESEND_API_KEY'],
+        message: 'Required when EMAIL_TRANSPORT=resend',
+      });
+    }
+    if (env.EMAIL_RESERVED >= env.EMAIL_DAILY_LIMIT) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['EMAIL_RESERVED'],
+        message: 'Must be less than EMAIL_DAILY_LIMIT',
+      });
+    }
+  });
 
 export type WorkerEnv = z.infer<typeof workerEnvSchema>;
 
