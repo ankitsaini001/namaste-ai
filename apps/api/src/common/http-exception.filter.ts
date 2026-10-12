@@ -52,6 +52,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     const body: ErrorResponse = { error, requestId };
     res.setHeader('X-Request-Id', requestId);
+    const retryAfter = error.details?.retryAfterSeconds;
+    if (status === HttpStatus.TOO_MANY_REQUESTS && typeof retryAfter === 'number') {
+      res.setHeader('Retry-After', String(retryAfter));
+    }
     res.status(status).json(body);
   }
 
