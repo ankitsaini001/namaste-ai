@@ -135,7 +135,10 @@ These decisions override the PDFs:
 
 ## Git
 
-- Commit locally on `main`, one commit per logical step, Conventional Commit messages.
+- Each feature gets its own branch from `dev` (for example `feat/auth-email-code`), with one
+  commit per logical step and Conventional Commit messages. Merge into `dev` when the feature is
+  done. `main` is reserved for releases.
+- Pushes go to GitHub as ankitsaini001 (SSH alias `github-ankitsaini001`).
 - **Never push to GitHub without the owner's explicit permission.**
 - `docs/` (except `docs/project-status.md`) and `.env*` files (except `.env.example`) are never
   committed.
