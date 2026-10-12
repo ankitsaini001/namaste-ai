@@ -1,9 +1,6 @@
 import { z } from 'zod';
 
-/**
- * General error codes (API Design §9.1). Area-specific codes (§9.2) are added
- * with the feature that introduces them.
- */
+/** Error codes (API Design §9). */
 export const ERROR_CODES = [
   'VALIDATION_FAILED',
   'AUTH_REQUIRED',
@@ -19,6 +16,10 @@ export const ERROR_CODES = [
   'RATE_LIMITED',
   'INTERNAL_ERROR',
   'SERVICE_UNAVAILABLE',
+  // Area-specific codes (§9.2), added with the feature that introduces them.
+  'LOGIN_CODE_INVALID',
+  'LOGIN_CODE_EXPIRED',
+  'LOGIN_CODE_LOCKED',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
