@@ -12,6 +12,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "db:migrate": "turbo run build --filter=@mmm/api && pnpm --filter @mmm/api migrate",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "infra:up": "docker compose -f infra/docker-compose.dev.yml up -d --wait",
