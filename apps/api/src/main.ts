@@ -9,6 +9,8 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const config = app.get<ConfigService<ApiEnv, true>>(ConfigService);
 
+  const trustProxy = config.get('TRUST_PROXY', { infer: true });
+  if (trustProxy) app.getHttpAdapter().getInstance().set('trust proxy', trustProxy);
   configureApp(app, { webOrigin: config.get('WEB_ORIGIN', { infer: true }) });
   app.enableShutdownHooks();
 

@@ -1,17 +1,35 @@
 import { validateApiEnv, validateWorkerEnv } from './env';
 
 const MONGODB_URI = 'mongodb://localhost:27017/makemymarriage?directConnection=true';
+const LOGIN_CODE_SECRET = 'x'.repeat(32);
 
 describe('validateApiEnv', () => {
   it('applies defaults, coerces PORT and normalises WEB_ORIGIN', () => {
     expect(
-      validateApiEnv({ PORT: '4100', WEB_ORIGIN: 'http://localhost:3000/', MONGODB_URI }),
+      validateApiEnv({
+        PORT: '4100',
+        WEB_ORIGIN: 'http://localhost:3000/',
+        MONGODB_URI,
+        LOGIN_CODE_SECRET,
+      }),
     ).toEqual({
       NODE_ENV: 'development',
       MONGODB_URI,
       PORT: 4100,
       WEB_ORIGIN: 'http://localhost:3000',
+      LOGIN_CODE_SECRET,
+      COOKIE_SECURE: true,
     });
+  });
+
+  it('requires a long login-code secret and reads COOKIE_SECURE as a boolean', () => {
+    const base = { WEB_ORIGIN: 'http://localhost:3000', MONGODB_URI };
+    expect(() => validateApiEnv({ ...base, LOGIN_CODE_SECRET: 'short' })).toThrow(
+      /LOGIN_CODE_SECRET: Use a random value of at least 32 characters/,
+    );
+    expect(
+      validateApiEnv({ ...base, LOGIN_CODE_SECRET, COOKIE_SECURE: 'false' }).COOKIE_SECURE,
+    ).toBe(false);
   });
 
   it('names every invalid variable in one readable error', () => {
@@ -22,7 +40,11 @@ describe('validateApiEnv', () => {
 
   it('rejects a database URI that is not a MongoDB connection string', () => {
     expect(() =>
-      validateApiEnv({ WEB_ORIGIN: 'http://localhost:3000', MONGODB_URI: 'postgres://db' }),
+      validateApiEnv({
+        WEB_ORIGIN: 'http://localhost:3000',
+        MONGODB_URI: 'postgres://db',
+        LOGIN_CODE_SECRET,
+      }),
     ).toThrow(/MONGODB_URI: Must start with mongodb/);
   });
 });

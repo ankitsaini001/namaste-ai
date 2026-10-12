@@ -14,6 +14,17 @@ export const apiEnvSchema = baseEnvSchema.extend({
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   // Normalised to a bare origin so it matches the browser's Origin header exactly.
   WEB_ORIGIN: z.url().transform((value) => new URL(value).origin),
+  // Keys the hash of each login code, so a database leak doesn't reveal codes.
+  LOGIN_CODE_SECRET: z.string().min(32, 'Use a random value of at least 32 characters'),
+  // Production: .makemymarriage.com, so the cookie works on the site and the API. Unset locally.
+  COOKIE_DOMAIN: z.string().min(1).optional(),
+  // Browsers accept Secure cookies on http://localhost, so this stays true locally too.
+  COOKIE_SECURE: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
+  // Express "trust proxy" setting when behind Caddy, so rate limits see the visitor's IP.
+  TRUST_PROXY: z.string().min(1).optional(),
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;
