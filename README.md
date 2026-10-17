@@ -44,7 +44,12 @@ app in watch mode. Open http://localhost:3000 for the homepage. http://localhost
 
 **Log in:** open http://localhost:3000/login, enter any email address and press "Email me a
 code". The code arrives in Mailpit (http://localhost:8025) a moment later; no real email is sent
-locally. New accounts are asked for a name once, then land on http://localhost:3000/app.
+locally. New accounts are asked for a name once.
+
+**Set up a wedding:** someone without a wedding lands on http://localhost:3000/setup: first the
+couple, date, city and website address, then the ceremonies. Creating it opens the wedding
+overview at http://localhost:3000/app. To go through setup again, log in with a new email address
+(each account belongs to one wedding).
 
 ## Local services
 
@@ -119,7 +124,7 @@ and on pull requests, in two jobs:
 1. **Checks:** install, `format:check`, then lint, typecheck, test (including the database tests)
    and build.
 2. **Browser tests:** starts MongoDB and Mailpit with Docker Compose, builds, migrates, and runs
-   the Playwright login tests. On failure, the Playwright report is attached to the run.
+   the Playwright login and setup tests. On failure, the Playwright report is attached to the run.
 
 ## Troubleshooting
 
@@ -136,7 +141,8 @@ infra/docker-compose.dev.yml ps`.
   `echo fs.inotify.max_user_watches=524288 | sudo tee /etc/sysctl.d/60-inotify-watches.conf && sudo sysctl --system`.
 - **No login code in Mailpit:** the worker sends emails. Check that it's running and logged
   `Worker ready (job types: send_email)`.
-- **"Too many code requests" while testing locally:** limits are per IP and per email. Clear them
+- **"Too many code requests" while testing locally:** limits are per IP and per email (10 code
+  requests per IP an hour; a full `pnpm test:e2e` run uses 6). Clear them
   with `docker compose -f infra/docker-compose.dev.yml exec mongo mongosh makemymarriage --eval 'db.rateLimits.deleteMany({})'`.
 - **Start the local database from scratch:** `docker compose -f infra/docker-compose.dev.yml down -v`
   deletes the MongoDB volume; the next `pnpm infra:up` creates a fresh replica set.

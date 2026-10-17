@@ -1,6 +1,6 @@
 # Make My Marriage — Project Status
 
-_Last updated: 12 October 2026_
+_Last updated: 17 October 2026_
 
 A running log of what has been built. Add an entry whenever a major feature is finished (see
 "How to update this file" at the end).
@@ -10,9 +10,9 @@ A running log of what has been built. Add an entry whenever a major feature is f
 | Item              | Status                                                               |
 | ----------------- | -------------------------------------------------------------------- |
 | Current phase     | Phase 1 — Core (in progress)                                         |
-| Latest feature    | Email-code login (AUTH-02 to AUTH-06)                                |
-| Up next           | Google sign-in (AUTH-01, AUTH-07), then wedding setup (WED)          |
-| Main branch       | `dev` on GitHub; login is on `feat/auth-email-code`, not yet merged  |
+| Latest feature    | Wedding setup and overview (WED-01 to WED-06, WED-09, WED-10; DASH-01, DASH-03, DASH-06) |
+| Up next           | Organisers (ORG), then ceremonies in full (EVT); Google sign-in (AUTH-01) when the OAuth client exists |
+| Main branch       | `dev` on GitHub (login merged); setup is on `feat/wedding-setup`, not yet merged |
 | Code checks       | Format, lint, typecheck, tests and build all pass                    |
 
 ## Release phases (PRD §31)
@@ -21,7 +21,7 @@ A running log of what has been built. Add an entry whenever a major feature is f
 | ----------------------- | -------------------------------------------- | ----------- |
 | Foundations             | Monorepo scaffold, local setup, CI           | ✅ Done     |
 | Public homepage         | Marketing page from the UX brief             | ✅ Done     |
-| 1. Core                 | AUTH, WED, ORG, EVT, GST, INV, RSVP, EML, WA, DASH | ⏳ In progress (email-code login done) |
+| 1. Core                 | AUTH, WED, ORG, EVT, GST, INV, RSVP, EML, WA, DASH | ⏳ In progress (email-code login, wedding setup, first overview done) |
 | 2. Guest experience     | WEB, THM, LIVE                               | Not started |
 | 3. Photos and documents | GAL, UPL, QR, DOC                            | Not started |
 | 4. Money and planning   | MON, VEN, TSK, SHOP                          | Not started |
@@ -31,6 +31,72 @@ A running log of what has been built. Add an entry whenever a major feature is f
 ## Feature log
 
 Newest first.
+
+### 4. Wedding setup and overview (WED, first part of DASH) — 17 October 2026
+
+**What was built**
+
+- Someone signed in without a wedding goes to `/setup`, in two steps:
+  1. **Your wedding:** bride, groom, title (fills in as "Princi & Akshay" until edited), wedding
+     date (today to 3 years ahead), city, an optional description, and the website address
+     (`makemymarriage.com/w/…`, suggested from the names, checked as you type).
+  2. **Your ceremonies:** presets (Engagement, Roka, Mehendi, Haldi, Sangeet, Cocktail, Wedding,
+     Reception) with typical start times, plus custom ceremonies. Each has a name, date, start time
+     in IST and a "Show on wedding website" switch. 1 to 20 ceremonies.
+- What's typed is kept in the browser until the wedding is created, so a refresh or a closed tab
+  returns to the same step (WED-10). The draft belongs to the signed-in user.
+- Creating the wedding makes, in one transaction: the wedding with its defaults (unpublished
+  Classic Indian website, default invitation design, empty budget, gallery code, reply-to email,
+  WhatsApp message), the creator's Admin membership, the ceremonies, and one album per ceremony
+  plus "General" (WED-02, WED-06).
+- `/app` is now the wedding overview: a welcome card with the date, city and days to go (DASH-01),
+  "Getting ready · 1 of 6 done" with the later steps marked "Coming soon" (DASH-03), and upcoming
+  ceremonies with Private and Live stream badges (DASH-06). A signed-in header shows the name, role
+  and "Log out".
+- API: `POST /v1/wedding`, `GET /v1/wedding`, `GET /v1/wedding/slug-available`, `GET /v1/events`;
+  `/v1/me` now includes the wedding and role.
+- Foundations for every later feature: the tenant guard (a query on wedding data without
+  `weddingId` is rejected), the wedding membership on every session, the `WeddingMemberGuard`
+  (403 `NO_WEDDING`), IST date helpers in `@mmm/shared`, and the 10-character guest/gallery code
+  generator.
+
+**Decisions**
+
+- Two setup steps for now; "Invite your family" (WED-01's third step) comes with ORG.
+- The wedding is created at the end of step 2, with its ceremonies, in one request, so there is
+  never a half-created wedding; `setupStep` is `done` from the start.
+- No emoji in the default title or WhatsApp message ("Princi & Akshay", not ❤️).
+- Ceremonies in setup ask only for name, date, start time and the website switch; venues, dress
+  code and the rest come with EVT.
+- One wedding per user is enforced by a unique index as well as a check, so two tabs creating at
+  once can't make two weddings. The same goes for a website address taken at the same moment.
+- All of these are recorded in `CLAUDE.md` under resolved conflicts.
+
+**Verification**
+
+- 182 unit and database tests pass (API 99, web 42, shared 39, email templates 2), plus format,
+  lint, typecheck and build. The database tests cover creation and defaults, rollback when a step
+  fails, one wedding per user and unique addresses under concurrency, validation messages, and that
+  one wedding's organisers can't see another's data.
+- 8 Playwright tests pass at desktop and phone sizes, including the full setup: field errors, the
+  reserved and available address messages, presets and a custom private ceremony, the draft
+  surviving a refresh, the overview, and `/setup` sending a finished user to `/app`. axe finds no
+  WCAG 2.1 AA violations on either step or the overview.
+- Screenshots reviewed at 390px and 1440px; no horizontal scrolling. This led to clearer messages
+  for empty fields ("Enter the city.", "Choose a website address.") and wider date fields on
+  phones.
+
+**Known gaps and follow-ups**
+
+- Not built yet: inviting organisers (ORG), editing the wedding afterwards (WED-07, WED-08), the
+  cover image, and full ceremony details (EVT). The overview's other cards (guests, RSVPs, budget,
+  tasks) come with their features.
+- The browser tests were run locally against the dev servers; CI runs them against production
+  builds on pull requests.
+- Local test runs share the per-IP login-code limit (10 an hour; a full browser run uses 6).
+- Still open from before: Google sign-in (AUTH-01, AUTH-07), production email settings.
+
+**Commits:** `415d7cd` … the commit adding this entry, on `feat/wedding-setup` (7 commits).
 
 ### 3. Email-code login (AUTH-02 to AUTH-06) — 12 October 2026
 
@@ -87,7 +153,7 @@ Newest first.
 - Local `pnpm dev` needs the file-watcher limit raised (see README troubleshooting).
 - Resend bounce and complaint webhooks and the suppression list come with EML.
 
-**Commits:** `b19acfa` … the commit adding this entry, on `feat/auth-email-code` (10 commits).
+**Commits:** `b19acfa` … `fb4971c`, merged into `dev` (branch `feat/auth-email-code`, 10 commits).
 
 ### 2. Public homepage — 3 October 2026
 

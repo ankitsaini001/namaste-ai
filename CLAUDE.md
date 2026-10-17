@@ -137,6 +137,12 @@ These decisions override the PDFs:
   the Database Design marks it required.
 - `loginCodes` are deleted one hour after they expire (TTL), not at expiry, so the login screen can
   say "expired" instead of "wrong code".
+- Wedding setup has two steps for now (wedding details, then ceremonies); WED-01's third step,
+  "invite organisers", comes with ORG. The wedding is created at the end of step 2 with its
+  ceremonies in one request, so `setupStep` is `done` at creation. Steps 1–2 are kept as a draft
+  in the browser until then (WED-10).
+- No emoji in generated text: the default title is "{Bride} & {Groom}" (not ❤️, WED-03), and the
+  default WhatsApp message has none either.
 
 ## Git
 
@@ -223,3 +229,14 @@ CI (`.github/workflows/ci.yml`) runs `pnpm install --frozen-lockfile`, `pnpm for
   login limits. Clear `rateLimits` in MongoDB (see README troubleshooting).
 - Tailwind: don't combine `hidden` with a component's own display class (`inline-flex`); wrap the
   component instead, or the display class may win.
+- Wedding data schemas apply the `tenantGuard` plugin (`src/database/plugins/`); a query or
+  aggregate without `weddingId` throws. The one exemption so far is `MembersService.findByUser`
+  (finding someone's wedding from their user ID).
+- Endpoints on wedding data use `@UseGuards(SessionGuard, WeddingMemberGuard)`; the guard returns
+  403 `NO_WEDDING` for users without a wedding, and `@CurrentAuth()` is then a `WeddingContext`
+  with `weddingId` and `role` from the membership. Sessions, guards and the auth context live in
+  `src/modules/session/`.
+- Times of day are entered and shown in IST whatever the browser's time zone: use `istToUtcIso`,
+  `utcToIstParts` and `todayInIst` from `@mmm/shared` (and `formatCeremonyTime` in the web app).
+- Web routes: `/setup` for users without a wedding, `/app` for the overview; each page redirects
+  to the other (or to `/login`) from the `/me` reply.
