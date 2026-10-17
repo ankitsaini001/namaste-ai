@@ -4,14 +4,16 @@ import { SESSION_COOKIE } from '@mmm/shared';
 import type { Request, Response } from 'express';
 import { AppException } from '../../common/app.exception';
 import type { ApiEnv } from '../../config/env';
+import { MembersService } from '../members/members.service';
 import { sessionCookieOptions } from './session-cookie';
 import { SessionsService } from './sessions.service';
 
-/** Requires a logged-in organiser. Sets `req.auth`. */
+/** Requires a logged-in user. Sets `req.auth`, including their wedding and role if they have one. */
 @Injectable()
 export class SessionGuard implements CanActivate {
   constructor(
     private readonly sessions: SessionsService,
+    private readonly members: MembersService,
     private readonly config: ConfigService<ApiEnv, true>,
   ) {}
 
@@ -37,7 +39,14 @@ export class SessionGuard implements CanActivate {
       );
     }
 
-    req.auth = { sessionId: session._id, kind: session.kind, userId: session.userId };
+    const membership = await this.members.findByUser(session.userId);
+    req.auth = {
+      sessionId: session._id,
+      kind: session.kind,
+      userId: session.userId,
+      weddingId: membership?.weddingId ?? null,
+      role: membership?.role ?? null,
+    };
     return true;
   }
 

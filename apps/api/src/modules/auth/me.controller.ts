@@ -1,10 +1,10 @@
 import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
 import type { Me } from '@mmm/shared';
 import { UsersService } from '../users/users.service';
-import { type AuthContext, CurrentAuth } from './auth-context';
+import { type AuthContext, CurrentAuth } from '../session/auth-context';
+import { SessionGuard } from '../session/session.guard';
 import { UpdateMeDto } from './auth.dto';
 import { MeService } from './me.service';
-import { SessionGuard } from './session.guard';
 
 /** The current user (API Design §12). Account deletion (AUTH-08) comes later. */
 @Controller('me')

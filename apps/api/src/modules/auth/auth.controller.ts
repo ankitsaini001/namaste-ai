@@ -9,8 +9,8 @@ import { UsersService } from '../users/users.service';
 import { EmailCodeRequestDto, EmailCodeVerifyDto } from './auth.dto';
 import { LoginCodesService } from './login-codes.service';
 import { MeService } from './me.service';
-import { sessionCookieOptions } from './session-cookie';
-import { SessionsService } from './sessions.service';
+import { sessionCookieOptions } from '../session/session-cookie';
+import { SessionsService } from '../session/sessions.service';
 
 const clientIp = (req: Request) => req.ip ?? 'unknown';
 
@@ -77,7 +77,7 @@ export class AuthController {
       ...this.cookieOptions(),
       expires: session.expiresAt,
     });
-    return { data: this.me.toMe(user) };
+    return { data: await this.me.toMe(user) };
   }
 
   /** Ends this browser's session. Safe to call when already logged out. */
