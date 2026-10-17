@@ -20,6 +20,8 @@ export const ERROR_CODES = [
   'LOGIN_CODE_INVALID',
   'LOGIN_CODE_EXPIRED',
   'LOGIN_CODE_LOCKED',
+  'ALREADY_IN_WEDDING',
+  'SLUG_TAKEN',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
