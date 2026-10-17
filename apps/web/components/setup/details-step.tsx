@@ -2,6 +2,7 @@
 
 import {
   addYears,
+  alternativeSlug,
   createWeddingSchema,
   defaultWeddingTitle,
   SLUG_MESSAGES,
@@ -57,6 +58,14 @@ function validate(value: Details): Errors {
 const autoSlug = (bride: string, groom: string) =>
   bride.trim() || groom.trim() ? suggestSlug(bride, groom) : '';
 
+/** The addresses suggested in turn: from the names, then with the wedding year (WED-04). */
+function suggestions(details: Details, today: string): string[] {
+  const base = autoSlug(details.brideName, details.groomName);
+  if (!base) return [];
+  const year = (details.date || today).slice(0, 4);
+  return [base, ...Array.from({ length: 9 }, (_, i) => alternativeSlug(base, year, i + 1))];
+}
+
 const slugQuery = (slug: string) => ({
   queryKey: ['slug-available', slug],
   queryFn: () => weddingApi.slugAvailable(slug),
@@ -99,6 +108,18 @@ export function DetailsStep({
     if (submitted) setErrors(validate(next));
     onChange(next);
   };
+
+  // While the address is still our suggestion, a taken one moves on to the next suggestion.
+  const suggested = value.slugEdited ? [] : suggestions(value, today);
+  const position = suggested.indexOf(value.slug);
+  const nextSuggestion = position >= 0 ? suggested[position + 1] : undefined;
+  const replaceTaken = nextSuggestion
+    ? () => {
+        const next = { ...value, slug: nextSuggestion };
+        if (submitted) setErrors(validate(next));
+        onChange(next);
+      }
+    : undefined;
 
   const errorFor = (field: Field) =>
     errors[field] ?? (serverError?.field === field ? serverError.message : undefined);
@@ -208,6 +229,8 @@ export function DetailsStep({
         value={value.slug}
         error={errorFor('slug')}
         onChange={(slug) => update({ slug })}
+        onTaken={replaceTaken}
+        takenNote={position > 0 ? `“${suggested[0]}” is taken, so we added the year.` : null}
       />
 
       <div className="flex justify-end border-t border-line pt-6">
@@ -224,10 +247,15 @@ function SlugField({
   value,
   error,
   onChange,
+  onTaken,
+  takenNote,
 }: {
   value: string;
   error: string | undefined;
   onChange: (slug: string) => void;
+  /** Set while the address is a suggestion: called instead of showing "taken". */
+  onTaken?: () => void;
+  takenNote: string | null;
 }) {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
@@ -241,16 +269,28 @@ function SlugField({
     enabled: debounced === value && debounced !== '' && slugProblem(debounced) === null,
   });
 
+  const taken =
+    debounced === value &&
+    availability.data?.available === false &&
+    availability.data.reason === 'taken';
+  const trySuggestion = taken && onTaken !== undefined;
+  useEffect(() => {
+    if (trySuggestion) onTaken?.();
+  }, [trySuggestion, onTaken]);
+
   // A form error wins; otherwise show what the live check found as the person types.
   const liveError =
     problem && value.length >= WEDDING_RULES.slug.min
       ? SLUG_MESSAGES[problem]
-      : availability.data && !availability.data.available && debounced === value
+      : availability.data && !availability.data.available && debounced === value && !trySuggestion
         ? SLUG_MESSAGES[availability.data.reason ?? 'taken']
         : undefined;
   const shownError = error ?? liveError;
   const checking =
-    !shownError && !problem && value !== '' && (debounced !== value || availability.isFetching);
+    !shownError &&
+    !problem &&
+    value !== '' &&
+    (debounced !== value || availability.isFetching || trySuggestion);
   const available = !shownError && !checking && availability.data?.available === true;
 
   return (
@@ -302,8 +342,8 @@ function SlugField({
           'Checking…'
         ) : available ? (
           <span className="inline-flex items-center gap-1.5">
-            <Check aria-hidden="true" className="size-4" />
-            This address is available.
+            <Check aria-hidden="true" className="size-4 shrink-0" />
+            This address is available.{takenNote && ` ${takenNote}`}
           </span>
         ) : null}
       </p>

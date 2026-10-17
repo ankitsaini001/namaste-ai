@@ -23,7 +23,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
+    // data-scroll-behavior: Next.js turns smooth scrolling off during page changes.
+    <html
+      lang="en"
+      data-scroll-behavior="smooth"
+      className={`${fraunces.variable} ${inter.variable}`}
+    >
       <body className="min-h-screen bg-ivory font-sans text-ink antialiased">{children}</body>
     </html>
   );
