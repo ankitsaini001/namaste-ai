@@ -74,7 +74,7 @@ Newest first.
 
 **Verification**
 
-- 182 unit and database tests pass (API 99, web 42, shared 39, email templates 2), plus format,
+- 194 unit and database tests pass (API 100, web 46, shared 46, email templates 2), plus format,
   lint, typecheck and build. The database tests cover creation and defaults, rollback when a step
   fails, one wedding per user and unique addresses under concurrency, validation messages, and that
   one wedding's organisers can't see another's data.
@@ -85,6 +85,18 @@ Newest first.
 - Screenshots reviewed at 390px and 1440px; no horizontal scrolling. This led to clearer messages
   for empty fields ("Enter the city.", "Choose a website address.") and wider date fields on
   phones.
+- Manual QA on 17 October: about 70 checks across login, both setup steps, the overview, two tabs,
+  a shared computer, a browser in another time zone, a dropped connection, a server error, and
+  direct API calls. Fixed as a result:
+  - Each person using a browser now has their own setup draft; before, opening setup replaced
+    another person's draft.
+  - After a wrong login code, the cursor goes back to the first box.
+  - The API refuses to create a wedding for a user who hasn't given their name.
+  - When the suggested website address is taken, setup suggests the next one with the wedding
+    year ("princi-akshay-2027"); addresses can't start or end with a hyphen.
+  - A setup tab left open notices a wedding created in another tab; a taken address found at
+    "Create" puts the cursor in the address field; the overview's tab title; a readable message
+    for an unknown ceremony type; the Next.js smooth-scroll warning.
 
 **Known gaps and follow-ups**
 
@@ -94,9 +106,13 @@ Newest first.
 - The browser tests were run locally against the dev servers; CI runs them against production
   builds on pull requests.
 - Local test runs share the per-IP login-code limit (10 an hour; a full browser run uses 6).
+- Open product questions from QA: preset ceremonies all start on the wedding day (Sangeet and
+  Wedding both default to 7 pm that day), and tapping a preset's chip removes its ceremony even
+  after it was renamed, without an undo.
 - Still open from before: Google sign-in (AUTH-01, AUTH-07), production email settings.
 
-**Commits:** `415d7cd` … the commit adding this entry, on `feat/wedding-setup` (7 commits).
+**Commits:** `415d7cd` … the commit adding the QA fixes to this entry, on `feat/wedding-setup`
+(12 commits).
 
 ### 3. Email-code login (AUTH-02 to AUTH-06) — 12 October 2026
 
