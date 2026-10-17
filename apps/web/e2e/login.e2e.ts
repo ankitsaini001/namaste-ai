@@ -47,10 +47,12 @@ test.describe('email-code login', () => {
 
     await expect(page.getByText("That code isn't right. 4 tries left.")).toBeVisible();
     await expect(page.getByLabel('Digit 1 of 6')).toHaveValue('');
+    // The cursor is back in the first box, ready for another try.
+    await expect(page.getByLabel('Digit 1 of 6')).toBeFocused();
     await expectAccessible(page);
 
     // The right code still works afterwards.
-    await page.getByLabel('Digit 1 of 6').pressSequentially(code);
+    await page.keyboard.type(code);
     await expect(page.getByRole('heading', { name: 'What should we call you?' })).toBeVisible();
   });
 

@@ -21,7 +21,9 @@ import { DETAIL_FIELDS, DetailsStep } from './details-step';
 /** Sends people to the right place, then runs the two setup steps. */
 export function SetupFlow() {
   const router = useRouter();
-  const me = useQuery({ queryKey: meQueryKey, queryFn: authApi.me });
+  // Checked again when the tab regains focus, so a tab left open on setup notices a wedding
+  // created in another tab before anything is typed into it.
+  const me = useQuery({ queryKey: meQueryKey, queryFn: authApi.me, refetchOnWindowFocus: true });
   const leaving = useRef(false);
 
   const signedOut = me.error instanceof ApiError && me.error.status === 401;
@@ -109,28 +111,34 @@ function SetupWizard({ userId }: { userId: string }) {
   const [serverError, setServerError] = useState<ServerError | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
-  useEffect(() => saveSetupDraft(draft), [draft]);
-
-  const firstRender = useRef(true);
+  // Saved only once something changes: just opening setup mustn't replace a saved draft.
+  const loaded = useRef(draft);
   useEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
-    }
-    headingRef.current?.focus();
+    if (draft !== loaded.current) saveSetupDraft(draft);
+  }, [draft]);
+
+  // On a new step, focus its heading so screen readers announce it, or the field to fix.
+  const shownStep = useRef(draft.step);
+  const focusField = useRef<string | null>(null);
+  useEffect(() => {
+    if (shownStep.current === draft.step) return;
+    shownStep.current = draft.step;
+    const field = focusField.current && document.getElementById(`setup-${focusField.current}`);
+    focusField.current = null;
+    (field || headingRef.current)?.focus();
   }, [draft.step]);
 
   const create = useMutation({
     mutationFn: () => weddingApi.create(toRequest(draft)),
     onMutate: () => setServerError(null),
     onSuccess: async () => {
-      clearSetupDraft();
+      clearSetupDraft(userId);
       await queryClient.invalidateQueries({ queryKey: meQueryKey });
       router.replace('/app');
     },
     onError: (error) => {
       if (error instanceof ApiError && error.code === 'ALREADY_IN_WEDDING') {
-        clearSetupDraft();
+        clearSetupDraft(userId);
         void queryClient.invalidateQueries({ queryKey: meQueryKey });
         router.replace('/app');
         return;
@@ -139,6 +147,7 @@ function SetupWizard({ userId }: { userId: string }) {
       setServerError({ field, message: error.message });
       // A problem with the details (say, the address was taken meanwhile) is fixed on step 1.
       if (DETAIL_FIELDS.some((name) => name === field)) {
+        focusField.current = field;
         setDraft((d) => ({ ...d, step: 'details' }));
       }
     },

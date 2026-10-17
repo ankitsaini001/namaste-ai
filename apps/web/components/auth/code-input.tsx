@@ -1,6 +1,12 @@
 'use client';
 
-import { type ClipboardEvent, type KeyboardEvent, useRef } from 'react';
+import {
+  type ClipboardEvent,
+  type KeyboardEvent,
+  type Ref,
+  useImperativeHandle,
+  useRef,
+} from 'react';
 import { cn } from '@/lib/cn';
 
 const LENGTH = 6;
@@ -12,6 +18,8 @@ type CodeInputProps = {
   disabled?: boolean;
   labelledBy: string;
   describedBy?: string;
+  /** Lets the screen put the cursor back in the first box, for example after a wrong code. */
+  ref?: Ref<{ focusFirst: () => void }>;
 };
 
 /**
@@ -25,12 +33,14 @@ export function CodeInput({
   disabled,
   labelledBy,
   describedBy,
+  ref,
 }: CodeInputProps) {
   const inputs = useRef<Array<HTMLInputElement | null>>([]);
   const digits = Array.from({ length: LENGTH }, (_, i) => value[i] ?? '');
 
   const focus = (index: number) =>
     inputs.current[Math.max(0, Math.min(LENGTH - 1, index))]?.focus();
+  useImperativeHandle(ref, () => ({ focusFirst: () => focus(0) }));
 
   const fillFrom = (index: number, text: string) => {
     const incoming = text.replace(/\D/g, '');

@@ -165,6 +165,11 @@ function CodeStep({
     return () => clearTimeout(timer);
   }, [secondsLeft]);
 
+  // The boxes are disabled while a code is checked, which loses the cursor; put it back in the
+  // first box when they're cleared for another try.
+  const codeInput = useRef<{ focusFirst: () => void }>(null);
+  const [refocus, setRefocus] = useState(0);
+
   const verify = useMutation({
     mutationFn: (value: string) => authApi.verifyCode(email, value),
     onSuccess: (me) => {
@@ -172,7 +177,10 @@ function CodeStep({
       onSignedIn(me.needsName);
     },
     onError: (error) => {
-      if (error instanceof ApiError && error.code === 'LOGIN_CODE_INVALID') setCode('');
+      if (error instanceof ApiError && error.code === 'LOGIN_CODE_INVALID') {
+        setCode('');
+        setRefocus((n) => n + 1);
+      }
     },
   });
 
@@ -183,8 +191,13 @@ function CodeStep({
       setCode('');
       setSecondsLeft(AUTH_RULES.resendAfterSeconds);
       setNotice('We sent you a new code.');
+      setRefocus((n) => n + 1);
     },
   });
+
+  useEffect(() => {
+    if (refocus > 0 && !verify.isPending) codeInput.current?.focusFirst();
+  }, [refocus, verify.isPending]);
 
   const submit = (value: string) => {
     if (value.length === AUTH_RULES.codeLength && !verify.isPending) {
@@ -229,6 +242,7 @@ function CodeStep({
           6-digit code
         </p>
         <CodeInput
+          ref={codeInput}
           value={code}
           labelledBy="code-label"
           describedBy={message ? 'code-error' : undefined}
