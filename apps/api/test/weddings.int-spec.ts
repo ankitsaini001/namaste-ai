@@ -22,9 +22,11 @@ describe('wedding setup (WED-01 to WED-06, WED-09)', () => {
   let db: Connection;
 
   /** A signed-in user with a session cookie, created directly (login itself is tested elsewhere). */
-  const newUser = async () => {
+  const newUser = async ({ named = true } = {}) => {
     const email = `organiser${++counter}.${Date.now()}@example.com`;
-    const user = await app.get(UsersService).signInWithVerifiedEmail(email);
+    const users = app.get(UsersService);
+    const user = await users.signInWithVerifiedEmail(email);
+    if (named) await users.updateName(user._id, 'Princi Sharma');
     const { token } = await app.get(SessionsService).createForUser(user._id, {});
     return { email, cookie: `mmm_session=${token}` };
   };
@@ -220,6 +222,16 @@ describe('wedding setup (WED-01 to WED-06, WED-09)', () => {
         .send(input())
         .expect(401);
       expect(res.body.error.code).toBe('AUTH_REQUIRED');
+    });
+  });
+
+  describe('POST /v1/wedding needs a name', () => {
+    it('asks for the organiser’s name first (AUTH-05), even when called directly', async () => {
+      const { cookie } = await newUser({ named: false });
+      const body = input();
+      const res = await post('/wedding', cookie, body).expect(400);
+      expect(res.body.error).toMatchObject({ code: 'VALIDATION_FAILED', field: 'name' });
+      expect(await db.collection('weddings').countDocuments({ slug: body.slug })).toBe(0);
     });
   });
 

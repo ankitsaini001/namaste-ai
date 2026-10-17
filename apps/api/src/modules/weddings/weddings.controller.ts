@@ -26,7 +26,10 @@ export class WeddingsController {
     const user = await this.users.findById(auth.userId);
     if (!user)
       throw new AppException(HttpStatus.UNAUTHORIZED, 'SESSION_EXPIRED', 'Please log in again.');
-    const wedding = await this.weddings.create({ id: user._id, email: user.email }, body);
+    const wedding = await this.weddings.create(
+      { id: user._id, email: user.email, name: user.name },
+      body,
+    );
     return { data: this.weddings.toDto(wedding) };
   }
 

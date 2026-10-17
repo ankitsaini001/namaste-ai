@@ -37,10 +37,12 @@ export class WeddingsService {
    * transaction (WED-02, WED-06; Database Design §16.3), so either all of it exists or none does.
    */
   async create(
-    creator: { id: Types.ObjectId; email: string },
+    creator: { id: Types.ObjectId; email: string; name: string | null },
     input: CreateWedding,
     now = new Date(),
   ): Promise<WeddingDocument> {
+    // The setup screens ask for the name first (AUTH-05); the API doesn't rely on that.
+    if (!creator.name?.trim()) throw nameRequired();
     if (await this.members.findByUser(creator.id)) throw alreadyInWedding();
     if (await this.weddings.exists({ slug: input.slug })) throw slugTaken();
 
@@ -176,6 +178,15 @@ function alreadyInWedding(): AppException {
     HttpStatus.CONFLICT,
     'ALREADY_IN_WEDDING',
     'You already have a wedding. Each account can plan one wedding.',
+  );
+}
+
+function nameRequired(): AppException {
+  return new AppException(
+    HttpStatus.BAD_REQUEST,
+    'VALIDATION_FAILED',
+    'Please tell us your name before setting up your wedding.',
+    'name',
   );
 }
 
