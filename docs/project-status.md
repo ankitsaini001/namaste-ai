@@ -12,7 +12,7 @@ A running log of what has been built. Add an entry whenever a major feature is f
 | Current phase     | Phase 1 — Core (in progress)                                         |
 | Latest feature    | Wedding setup and overview (WED-01 to WED-06, WED-09, WED-10; DASH-01, DASH-03, DASH-06) |
 | Up next           | Organisers (ORG), then ceremonies in full (EVT); Google sign-in (AUTH-01) when the OAuth client exists |
-| Main branch       | `dev` on GitHub (login merged); setup is on `feat/wedding-setup`, not yet merged |
+| Main branch       | `dev` on GitHub, with login and wedding setup merged                  |
 | Code checks       | Format, lint, typecheck, tests and build all pass                    |
 
 ## Release phases (PRD §31)
@@ -111,8 +111,8 @@ Newest first.
   after it was renamed, without an undo.
 - Still open from before: Google sign-in (AUTH-01, AUTH-07), production email settings.
 
-**Commits:** `415d7cd` … the commit adding the QA fixes to this entry, on `feat/wedding-setup`
-(12 commits).
+**Commits:** `415d7cd` … the commit marking this entry merged, merged into `dev` (branch
+`feat/wedding-setup`, 13 commits).
 
 ### 3. Email-code login (AUTH-02 to AUTH-06) — 12 October 2026
 
