@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { Logo } from '@/components/ui/logo';
 import { ROUTES } from '@/lib/routes';
-import { Badge } from '@/components/home/mockup';
+import { Badge } from '@/components/ui/badge';
 
 /**
  * Login layout (UX brief §12): the form on ivory; on large screens, the aubergine panel with the

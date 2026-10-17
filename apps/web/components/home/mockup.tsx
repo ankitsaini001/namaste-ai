@@ -21,29 +21,4 @@ export function Mockup({
   );
 }
 
-/** Small status pill used inside mockups. */
-export function Badge({
-  children,
-  tone,
-}: {
-  children: ReactNode;
-  tone: 'attending' | 'pending' | 'countdown' | 'neutral' | 'dark';
-}) {
-  const tones = {
-    attending: 'bg-green-tint text-green-ink',
-    pending: 'bg-sand text-muted',
-    countdown: 'bg-terracotta-tint text-terracotta-ink',
-    neutral: 'border border-line bg-white text-muted',
-    dark: 'bg-aubergine text-ivory',
-  } as const;
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium',
-        tones[tone],
-      )}
-    >
-      {children}
-    </span>
-  );
-}
+export { Badge } from '@/components/ui/badge';
