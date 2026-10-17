@@ -70,6 +70,8 @@ describe('createWeddingSchema', () => {
     ['a date more than 3 years ahead', { date: '2029-10-18' }, /within 3 years/],
     ['no ceremonies', { events: [] }, /at least one ceremony/],
     ['a one-letter city', { city: 'X' }, /at least 2 characters/],
+    ['an empty city', { city: '' }, /^Enter the city\.$/],
+    ['an empty website address', { slug: '' }, /^Choose a website address\.$/],
     ['a blank bride name', { brideName: '   ' }, /bride's name/],
   ])('rejects %s', (_label, change, message) => {
     const result = createWeddingSchema.safeParse({ ...valid, ...change });

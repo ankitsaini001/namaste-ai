@@ -103,6 +103,10 @@ export const slugSchema = z
   .trim()
   .toLowerCase()
   .superRefine((slug, ctx) => {
+    if (!slug) {
+      ctx.addIssue({ code: 'custom', message: 'Choose a website address.' });
+      return;
+    }
     const problem = slugProblem(slug);
     if (problem) ctx.addIssue({ code: 'custom', message: SLUG_MESSAGES[problem] });
   });
@@ -131,7 +135,9 @@ const text = (label: string, { min, max }: { min: number; max: number }) =>
   z
     .string({ error: `Enter the ${label}.` })
     .trim()
-    .min(min, min === 1 ? `Enter the ${label}.` : `The ${label} needs at least ${min} characters.`)
+    // Empty fields ask for the value; too-short ones say how long it needs to be.
+    .min(1, `Enter the ${label}.`)
+    .min(min, `The ${label} needs at least ${min} characters.`)
     .max(max, `Please keep the ${label} under ${max + 1} characters.`);
 
 /** A ceremony as entered during setup (WED-05). Fuller details come with the Ceremonies feature. */
