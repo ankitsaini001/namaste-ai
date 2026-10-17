@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  alternativeSlug,
   createWeddingSchema,
   defaultWeddingTitle,
   slugProblem,
@@ -13,6 +14,10 @@ describe('website address (slug)', () => {
     ['ab', 'invalid'],
     ['Princi Akshay', 'invalid'],
     ['x'.repeat(41), 'invalid'],
+    ['-princi', 'invalid'],
+    ['princi-', 'invalid'],
+    ['a-b', null],
+    ['x'.repeat(40), null],
     ['admin', 'reserved'],
     ['login', 'reserved'],
   ])('%j → %s', (slug, problem) => {
@@ -32,6 +37,21 @@ describe('website address (slug)', () => {
     expect(
       suggestSlug('Rajeshwari'.repeat(3), 'Venkataraman'.repeat(2)).length,
     ).toBeLessThanOrEqual(40);
+  });
+});
+
+describe('alternativeSlug', () => {
+  it('adds the wedding year, then a number', () => {
+    expect(alternativeSlug('princi-akshay', '2027', 1)).toBe('princi-akshay-2027');
+    expect(alternativeSlug('princi-akshay', '2027', 2)).toBe('princi-akshay-2027-2');
+    expect(alternativeSlug('wedding', '2027', 3)).toBe('wedding-2027-3');
+  });
+
+  it('stays a valid address of at most 40 characters', () => {
+    const long = alternativeSlug('a'.repeat(30) + '-bcdefgh', '2027', 9);
+    expect(long.length).toBeLessThanOrEqual(40);
+    expect(slugProblem(long)).toBeNull();
+    expect(alternativeSlug('a'.repeat(34) + '-b', '2027', 1)).toBe(`${'a'.repeat(34)}-2027`);
   });
 });
 
@@ -73,6 +93,11 @@ describe('createWeddingSchema', () => {
     ['an empty city', { city: '' }, /^Enter the city\.$/],
     ['an empty website address', { slug: '' }, /^Choose a website address\.$/],
     ['a blank bride name', { brideName: '   ' }, /bride's name/],
+    [
+      'an unknown ceremony type',
+      { events: [{ type: 'party', name: 'Party', startsAt: '2027-02-14T13:30:00.000Z' }] },
+      /^Choose a ceremony type\.$/,
+    ],
   ])('rejects %s', (_label, change, message) => {
     const result = createWeddingSchema.safeParse({ ...valid, ...change });
     expect(result.success).toBe(false);

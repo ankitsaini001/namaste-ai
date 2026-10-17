@@ -83,7 +83,8 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   'www',
 ]);
 
-const SLUG_PATTERN = /^[a-z0-9-]{3,40}$/;
+// 3–40 characters; hyphens only between letters or numbers, never at either end.
+const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/;
 
 /** The website address check, in the order the person should hear about problems. */
 export function slugProblem(slug: string): 'invalid' | 'reserved' | null {
@@ -93,7 +94,8 @@ export function slugProblem(slug: string): 'invalid' | 'reserved' | null {
 }
 
 export const SLUG_MESSAGES = {
-  invalid: 'Use 3–40 lowercase letters, numbers and hyphens.',
+  invalid:
+    'Use 3–40 lowercase letters, numbers and hyphens, starting and ending with a letter or number.',
   reserved: 'That address is reserved. Please choose another.',
   taken: 'That address is already taken. Please choose another.',
 } as const;
@@ -126,6 +128,16 @@ export function suggestSlug(brideName: string, groomName: string): string {
   return RESERVED_SLUGS.has(slug) ? `${slug}-wedding` : slug;
 }
 
+/**
+ * Another address to try when a suggested one is taken: the wedding year, then a number
+ * ("princi-akshay-2027", "princi-akshay-2027-2", …). Stays within 40 characters.
+ */
+export function alternativeSlug(base: string, year: string, attempt: number): string {
+  const suffix = attempt <= 1 ? `-${year}` : `-${year}-${attempt}`;
+  const stem = base.slice(0, WEDDING_RULES.slug.max - suffix.length).replace(/-+$/g, '');
+  return `${stem}${suffix}`;
+}
+
 /** The title the setup form fills in (WED-03): bride first, joined with "&". */
 export function defaultWeddingTitle(brideName: string, groomName: string): string {
   return [brideName.trim(), groomName.trim()].filter(Boolean).join(' & ');
@@ -142,7 +154,7 @@ const text = (label: string, { min, max }: { min: number; max: number }) =>
 
 /** A ceremony as entered during setup (WED-05). Fuller details come with the Ceremonies feature. */
 export const ceremonyInputSchema = z.object({
-  type: z.enum(EVENT_TYPES),
+  type: z.enum(EVENT_TYPES, { error: 'Choose a ceremony type.' }),
   name: text('ceremony name', { min: 1, max: WEDDING_RULES.eventNameMax }),
   startsAt: z.iso.datetime({ error: 'Choose a date and time.' }),
   showOnWebsite: z.boolean().default(true),
