@@ -22,6 +22,18 @@ export async function readLoginCode(email: string, timeoutMs = 20_000): Promise<
   throw new Error(`No login code email for ${email} within ${timeoutMs}ms`);
 }
 
+/** Signs a brand-new organiser in with an email code and gives their name; ends on /setup. */
+export async function signUp(page: Page, name: string, email = uniqueEmail('user')) {
+  await page.goto('/login');
+  await page.getByLabel('Email address').fill(email);
+  await page.getByRole('button', { name: 'Email me a code' }).click();
+  await page.getByLabel('Digit 1 of 6').pressSequentially(await readLoginCode(email));
+  await page.getByLabel('Your name').fill(name);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page).toHaveURL(/\/setup$/);
+  return email;
+}
+
 /** Fails the test on any WCAG 2.1 AA violation. */
 export async function expectAccessible(page: Page) {
   const results = await new AxeBuilder({ page })

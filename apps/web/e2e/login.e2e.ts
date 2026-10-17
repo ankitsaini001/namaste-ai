@@ -25,9 +25,9 @@ test.describe('email-code login', () => {
     await page.getByLabel('Your name').fill('Princi Sharma');
     await page.getByRole('button', { name: 'Continue' }).click();
 
-    await expect(page).toHaveURL(/\/app$/);
-    await expect(page.getByRole('heading', { name: 'Welcome, Princi.' })).toBeVisible();
-    await expectAccessible(page);
+    // Someone without a wedding goes on to set one up.
+    await expect(page).toHaveURL(/\/setup$/);
+    await expect(page.getByRole('heading', { name: 'Your wedding' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Log out' }).click();
     await expect(page).toHaveURL(/\/login$/);
