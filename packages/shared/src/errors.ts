@@ -22,6 +22,10 @@ export const ERROR_CODES = [
   'LOGIN_CODE_LOCKED',
   'ALREADY_IN_WEDDING',
   'SLUG_TAKEN',
+  'JOIN_LINK_INVALID',
+  'JOIN_LINK_EXPIRED',
+  'JOIN_EMAIL_MISMATCH',
+  'LAST_ADMIN',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
