@@ -137,12 +137,20 @@ These decisions override the PDFs:
   the Database Design marks it required.
 - `loginCodes` are deleted one hour after they expire (TTL), not at expiry, so the login screen can
   say "expired" instead of "wrong code".
-- Wedding setup has two steps for now (wedding details, then ceremonies); WED-01's third step,
-  "invite organisers", comes with ORG. The wedding is created at the end of step 2 with its
-  ceremonies in one request, so `setupStep` is `done` at creation. Steps 1–2 are kept as a draft
-  in the browser until then (WED-10).
+- Wedding setup has three steps: wedding details, ceremonies, then "Invite your family"
+  (skippable). The wedding is created at the end of step 2 with its ceremonies in one request, so
+  `setupStep` is `organisers` at creation; finishing or skipping step 3 calls
+  `POST /v1/wedding/setup-step` with `done`. Steps 1–2 are kept as a per-user draft in the browser
+  until the wedding exists (WED-10). Only the Admin is sent back to step 3; Managers who join early
+  go straight to the overview.
 - No emoji in generated text: the default title is "{Bride} & {Groom}" (not ❤️, WED-03), and the
   default WhatsApp message has none either.
+- Organisers: only Managers can leave (ORG-09); an Admin changes their role to Manager first, and
+  can't remove themselves. Inviting an email that already has an invitation sends it again (new
+  link, the new name and role) instead of an error. The API also refuses to create or join a
+  wedding before the user has given their name.
+- The Organisers page is in the navigation for Managers too (read-only, with "Leave this
+  wedding"); the UX brief lists it under the Admin-only items.
 
 ## Git
 
@@ -230,13 +238,19 @@ CI (`.github/workflows/ci.yml`) runs `pnpm install --frozen-lockfile`, `pnpm for
 - Tailwind: don't combine `hidden` with a component's own display class (`inline-flex`); wrap the
   component instead, or the display class may win.
 - Wedding data schemas apply the `tenantGuard` plugin (`src/database/plugins/`); a query or
-  aggregate without `weddingId` throws. The one exemption so far is `MembersService.findByUser`
-  (finding someone's wedding from their user ID).
+  aggregate without `weddingId` throws. The exemptions so far: `MembersService.findByUser`
+  (someone's wedding from their user ID) and `OrganisersService.findByToken` (an invite from its
+  join link).
 - Endpoints on wedding data use `@UseGuards(SessionGuard, WeddingMemberGuard)`; the guard returns
   403 `NO_WEDDING` for users without a wedding, and `@CurrentAuth()` is then a `WeddingContext`
-  with `weddingId` and `role` from the membership. Sessions, guards and the auth context live in
+  with `weddingId` and `role` from the membership. For Admin-only endpoints add `RolesGuard` and
+  `@Roles('admin')` (403 `FORBIDDEN`). Sessions, guards and the auth context live in
   `src/modules/session/`.
+- Secrets in an email's `templateData` (login codes, join links) are listed in `SECRET_FIELDS`
+  in `send-email.handler.ts` and removed once the email is sent.
 - Times of day are entered and shown in IST whatever the browser's time zone: use `istToUtcIso`,
   `utcToIstParts` and `todayInIst` from `@mmm/shared` (and `formatCeremonyTime` in the web app).
-- Web routes: `/setup` for users without a wedding, `/app` for the overview; each page redirects
-  to the other (or to `/login`) from the `/me` reply.
+- Web routes: `/setup` for users without a wedding (and the Admin's step 3), `/app/*` for
+  everything else, `/join/:token` for organiser invitations. Pages under `/app` render inside
+  `SignedInShell` (`app/(dashboard)/app/layout.tsx`), which does the redirects from the `/me`
+  reply; add each new section to the navigation in `components/app/app-shell.tsx`.

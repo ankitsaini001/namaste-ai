@@ -1,6 +1,6 @@
 # Make My Marriage — Project Status
 
-_Last updated: 17 October 2026_
+_Last updated: 18 October 2026_
 
 A running log of what has been built. Add an entry whenever a major feature is finished (see
 "How to update this file" at the end).
@@ -10,9 +10,9 @@ A running log of what has been built. Add an entry whenever a major feature is f
 | Item              | Status                                                               |
 | ----------------- | -------------------------------------------------------------------- |
 | Current phase     | Phase 1 — Core (in progress)                                         |
-| Latest feature    | Wedding setup and overview (WED-01 to WED-06, WED-09, WED-10; DASH-01, DASH-03, DASH-06) |
-| Up next           | Organisers (ORG), then ceremonies in full (EVT); Google sign-in (AUTH-01) when the OAuth client exists |
-| Main branch       | `dev` on GitHub, with login and wedding setup merged                  |
+| Latest feature    | Organisers (ORG-01 to ORG-10), setup step 3 and the app navigation   |
+| Up next           | Ceremonies in full (EVT), then guests (GST); Google sign-in (AUTH-01) when the OAuth client exists |
+| Main branch       | `dev` on GitHub (login and wedding setup merged); organisers is on `feat/organisers`, not yet merged |
 | Code checks       | Format, lint, typecheck, tests and build all pass                    |
 
 ## Release phases (PRD §31)
@@ -21,7 +21,7 @@ A running log of what has been built. Add an entry whenever a major feature is f
 | ----------------------- | -------------------------------------------- | ----------- |
 | Foundations             | Monorepo scaffold, local setup, CI           | ✅ Done     |
 | Public homepage         | Marketing page from the UX brief             | ✅ Done     |
-| 1. Core                 | AUTH, WED, ORG, EVT, GST, INV, RSVP, EML, WA, DASH | ⏳ In progress (email-code login, wedding setup, first overview done) |
+| 1. Core                 | AUTH, WED, ORG, EVT, GST, INV, RSVP, EML, WA, DASH | ⏳ In progress (email-code login, wedding setup, organisers, first overview done) |
 | 2. Guest experience     | WEB, THM, LIVE                               | Not started |
 | 3. Photos and documents | GAL, UPL, QR, DOC                            | Not started |
 | 4. Money and planning   | MON, VEN, TSK, SHOP                          | Not started |
@@ -31,6 +31,88 @@ A running log of what has been built. Add an entry whenever a major feature is f
 ## Feature log
 
 Newest first.
+
+### 5. Organisers (ORG-01 to ORG-10) — 18 October 2026
+
+**What was built**
+
+- Setup step 3, "Invite your family": after the wedding is created, the Admin can invite people
+  by name, email and role, or skip. Setup resumes there if interrupted (WED-01, WED-10).
+- The Organisers page (`/app/organisers`):
+  - Admins invite someone, see organisers and pending invitations, resend or cancel an
+    invitation, change roles, and remove people (with a confirmation step).
+  - Managers see who's helping and can leave the wedding.
+  - It shows how many of the 20 places are used; expired invitations are marked and can be resent.
+- The invitee's side: an email with a "Join the wedding" link that works for 7 days. The join page
+  (`/join/…`) shows "Asha has invited you to help plan Asha & Karan as a Manager. Please sign in with
+  q•••@example.com." above the usual email-code sign-in, fills in the invited name for the invited
+  email, and joins right after. Someone already signed in joins straight away.
+- Clear messages when a link was replaced, expired, cancelled or already used; when someone signs
+  in with a different email ("Log out and sign in again" stays on the page); and when they already
+  plan another wedding.
+- The rules: a wedding always keeps an Admin (even when two Admins step down at the same moment);
+  removing someone ends their sessions on every device; only Managers can leave; at most 20
+  organisers, counting invitations that can still be accepted.
+- The app's navigation from the UX brief: a sand sidebar on desktop (wedding card, sections, the
+  user and "Log out") and a bottom tab bar on phones. It lists only the sections that exist:
+  Dashboard and Organisers.
+- The overview counts "Invite your family" as done once someone is invited, with a "Start" link
+  until then.
+- API: `GET /v1/organisers`, `POST /v1/organisers/invites`, `POST /v1/organisers/invites/:id/resend`,
+  `DELETE /v1/organisers/invites/:id`, `PATCH` and `DELETE /v1/organisers/:userId`,
+  `POST /v1/organisers/leave`, `GET` and `POST /v1/join/:token`, `POST /v1/wedding/setup-step`.
+- Foundations for later features: `RolesGuard` with `@Roles('admin')` (403 `FORBIDDEN`), the
+  `organiserInvites` collection (only a hash of each link is stored; unaccepted invitations are
+  deleted 30 days after expiry), the invitation email template, and removal of secrets (login
+  codes, join links) from stored email records once sent.
+
+**Decisions**
+
+- Setup step 3 included now; the wedding still gets created at the end of step 2.
+- Navigation shows only built sections; each feature adds its own.
+- Inviting an email that already has an invitation sends it again with the new name and role.
+- An Admin who wants to leave changes their role to Manager first, so a wedding always has an
+  Admin; Admins can't remove themselves.
+- Managers see the Organisers page read-only (the UX brief lists it as Admin-only).
+- Resending gives a new link and the old one stops working, since only the link's hash is kept.
+- At most 30 invitation emails per wedding per hour, so an inbox can't be flooded by resends.
+- All of these are recorded in `CLAUDE.md`.
+
+**Verification**
+
+- 228 unit and database tests pass (API 117, web 51, shared 56, email templates 4), plus format,
+  lint, typecheck and build. The 17 new database tests cover every rule above, including two
+  Admins stepping down at once and each wedding's organisers staying private.
+- 8 Playwright tests pass at desktop and phone sizes. The setup test now invites Rohit in step 3,
+  reads the email from Mailpit, and has him join as a Manager in a second browser; axe finds no
+  WCAG 2.1 AA violations on step 3, the Organisers page, the join page or the Manager's view.
+- Screenshots reviewed at 390px and 1440px; this moved row buttons and confirmations onto their
+  own lines on phones and put "Log out" under the name in the sidebar.
+- Manual QA on 18 October with six people across two weddings:
+  - resuming at step 3
+  - the wrong email on a join link
+  - joining while signed in
+  - replaced, expired and cancelled links
+  - someone in another wedding
+  - role changes and the last-Admin rule
+  - removal ending access
+  - leaving
+  - a Manager joining before setup was finished
+
+  Two fixes came out of it: the invited name is now filled in only for the invited email, and a
+  used link offers "Go to your wedding".
+
+**Known gaps and follow-ups**
+
+- Still to come: unassigning a removed organiser's tasks and shopping items (when TSK and SHOP
+  exist), Settings (SET), editing the wedding (WED-07, WED-08), and the Organisers card on the
+  dashboard (DASH-11).
+- Other organisers' screens don't update live; they see changes on their next page load.
+- Google sign-in (AUTH-01) and production email (Resend) are still open.
+- Open product questions from the last QA: preset ceremony dates, and what a chip does to a
+  renamed ceremony.
+
+**Commits:** `20c7caa` … the commit adding this entry, on `feat/organisers` (5 commits).
 
 ### 4. Wedding setup and overview (WED, first part of DASH) — 17 October 2026
 

@@ -47,9 +47,13 @@ code". The code arrives in Mailpit (http://localhost:8025) a moment later; no re
 locally. New accounts are asked for a name once.
 
 **Set up a wedding:** someone without a wedding lands on http://localhost:3000/setup: first the
-couple, date, city and website address, then the ceremonies. Creating it opens the wedding
-overview at http://localhost:3000/app. To go through setup again, log in with a new email address
-(each account belongs to one wedding).
+couple, date, city and website address, then the ceremonies, then "Invite your family" (which can
+be skipped). The wedding overview is at http://localhost:3000/app. To go through setup again, log
+in with a new email address (each account belongs to one wedding).
+
+**Invite an organiser:** invite another email address in setup step 3 or on
+http://localhost:3000/app/organisers. The invitation arrives in Mailpit; open its "Join the
+wedding" link in a private window and sign in with the invited address.
 
 ## Local services
 
@@ -142,7 +146,7 @@ infra/docker-compose.dev.yml ps`.
 - **No login code in Mailpit:** the worker sends emails. Check that it's running and logged
   `Worker ready (job types: send_email)`.
 - **"Too many code requests" while testing locally:** limits are per IP and per email (10 code
-  requests per IP an hour; a full `pnpm test:e2e` run uses 6). Clear them
+  requests per IP an hour; a full `pnpm test:e2e` run uses 8). Clear them
   with `docker compose -f infra/docker-compose.dev.yml exec mongo mongosh makemymarriage --eval 'db.rateLimits.deleteMany({})'`.
 - **Start the local database from scratch:** `docker compose -f infra/docker-compose.dev.yml down -v`
   deletes the MongoDB volume; the next `pnpm infra:up` creates a fresh replica set.
