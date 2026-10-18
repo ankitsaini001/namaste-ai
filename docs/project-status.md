@@ -12,7 +12,7 @@ A running log of what has been built. Add an entry whenever a major feature is f
 | Current phase     | Phase 1 — Core (in progress)                                         |
 | Latest feature    | Wedding details in Settings (WED-07, WED-08, SET-01 details)         |
 | Up next           | Ceremonies in full (EVT), then guests (GST); Google sign-in (AUTH-01) when the OAuth client exists |
-| Main branch       | `dev` on GitHub (up to organisers); wedding details is on `feat/wedding-details`, not yet merged |
+| Main branch       | `dev` on GitHub, with login, wedding setup, organisers and wedding details merged |
 | Code checks       | Format, lint, typecheck, tests and build all pass                    |
 
 ## Release phases (PRD §31)
@@ -87,7 +87,8 @@ Newest first.
   settings above.
 - Someone with Settings open in another tab sees changes after a reload.
 
-**Commits:** `6c03819` … the commit adding this entry, on `feat/wedding-details` (5 commits).
+**Commits:** `6c03819` … the commit marking this entry merged, merged into `dev` (branch
+`feat/wedding-details`, 6 commits).
 
 ### 5. Organisers (ORG-01 to ORG-10) — 18 October 2026
 
