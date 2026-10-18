@@ -18,6 +18,12 @@ export function addYears(day: string, years: number): string {
   return result.toISOString().slice(0, 10);
 }
 
+/** Adds (or with a negative number, subtracts) whole days to a YYYY-MM-DD day. */
+export function addDays(day: string, days: number): string {
+  const [y, m, d] = day.split('-').map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
 /** A date and time entered in IST ("2027-02-12", "16:30") as a UTC ISO string. */
 export function istToUtcIso(day: string, time: string): string {
   const [y, m, d] = day.split('-').map(Number) as [number, number, number];

@@ -16,10 +16,12 @@ import {
 } from '@mmm/shared';
 import { type Connection, type Model, Types } from 'mongoose';
 import { AppException } from '../../common/app.exception';
+import { changeStamp } from '../../common/change-stamp';
 import { generateCode } from '../../common/codes';
 import { EventsService } from '../events/events.service';
 import { AlbumsService } from '../gallery/albums.service';
 import { MembersService } from '../members/members.service';
+import { UsersService } from '../users/users.service';
 import { PRESET_GROUPS, Wedding, type WeddingDocument } from './wedding.schema';
 
 const DUPLICATE_KEY = 11000;
@@ -36,6 +38,7 @@ export class WeddingsService {
     private readonly members: MembersService,
     private readonly events: EventsService,
     private readonly albums: AlbumsService,
+    private readonly users: UsersService,
   ) {}
 
   /**
@@ -120,13 +123,13 @@ export class WeddingsService {
         ],
         { session },
       );
-      await this.members.add(weddingId, creator.id, 'admin', session, now);
+      await this.members.add(weddingId, creator.id, 'admin', null, session, now);
       await this.albums.createForNewWedding(
         weddingId,
         ceremonies.map((c) => ({ eventId: c.id, albumId: c.albumId, name: c.name })),
         session,
       );
-      await this.events.createMany(weddingId, ceremonies, session);
+      await this.events.createMany(weddingId, ceremonies, creator.id, session);
       return wedding!;
     });
   }
@@ -153,6 +156,7 @@ export class WeddingsService {
   async update(
     weddingId: Types.ObjectId,
     changes: UpdateWedding,
+    changedBy: Types.ObjectId,
     now = new Date(),
   ): Promise<WeddingDocument> {
     const wedding = await this.weddings.findById(weddingId);
@@ -194,6 +198,8 @@ export class WeddingsService {
     if (headingFollowsNames) {
       wedding.website.content.heroHeading = `${wedding.brideName} & ${wedding.groomName}`;
     }
+    wedding.changedBy = changedBy;
+    wedding.changedAt = now;
 
     try {
       await wedding.save();
@@ -227,7 +233,8 @@ export class WeddingsService {
   }
 
   /** The Wedding shape the API returns (API Design §8.3, the parts built so far). */
-  toDto(wedding: WeddingDocument): WeddingDto {
+  async toDto(wedding: WeddingDocument): Promise<WeddingDto> {
+    const names = await this.users.namesFor([wedding.createdBy, wedding.changedBy]);
     return {
       id: String(wedding._id),
       brideName: wedding.brideName,
@@ -246,6 +253,8 @@ export class WeddingsService {
       groups: wedding.groups.map((g) => ({ id: String(g._id), name: g.name })),
       setupStep: wedding.setupStep,
       isDemo: wedding.isDemo,
+      added: changeStamp(names, wedding.createdBy, wedding.createdAt),
+      lastChanged: changeStamp(names, wedding.changedBy, wedding.changedAt),
     };
   }
 }

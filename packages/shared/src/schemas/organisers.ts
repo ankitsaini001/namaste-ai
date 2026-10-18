@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { LIMITS } from '../limits';
 import { SETUP_STEPS } from './auth';
-import { idSchema } from './common';
+import { changeStampSchema, idSchema } from './common';
 
 /** The two organiser roles (PRD §7, §28). Admins also manage organisers and settings. */
 export const ORGANISER_ROLES = ['admin', 'manager'] as const;
@@ -62,6 +62,10 @@ export const organiserSchema = z.object({
   role: z.enum(ORGANISER_ROLES),
   joinedAt: z.string(),
   isYou: z.boolean(),
+  /** Who invited them (null for whoever created the wedding), and when they joined. */
+  added: changeStampSchema.nullable(),
+  /** The latest role change, if any. */
+  lastChanged: changeStampSchema.nullable(),
 });
 export type Organiser = z.infer<typeof organiserSchema>;
 
@@ -71,6 +75,8 @@ export const organiserInviteSchema = z.object({
   email: z.string(),
   role: z.enum(ORGANISER_ROLES),
   invitedByName: z.string().nullable(),
+  /** Who sent the latest email, which may be a different Admin after a resend. */
+  sentByName: z.string().nullable(),
   sentAt: z.string(),
   expiresAt: z.string(),
   expired: z.boolean(),

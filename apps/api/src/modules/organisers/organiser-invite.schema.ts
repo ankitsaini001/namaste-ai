@@ -24,6 +24,10 @@ export class OrganiserInvite {
   @Prop({ type: Types.ObjectId, required: true })
   invitedBy!: Types.ObjectId;
 
+  /** Who sent the latest email: a different Admin may resend it. */
+  @Prop({ type: Types.ObjectId, default: null })
+  sentBy!: Types.ObjectId | null;
+
   /** SHA-256 of the token in the join link; the token itself is never stored. */
   @Prop({ type: String, required: true })
   tokenHash!: string;

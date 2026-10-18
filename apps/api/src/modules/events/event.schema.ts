@@ -52,6 +52,18 @@ export class WeddingEventRecord {
   /** Created together with the ceremony (EVT-05). */
   @Prop({ type: Types.ObjectId, required: true })
   albumId!: Types.ObjectId;
+
+  /** Who added it, and the latest change by whom (owner's decision, 18 Oct 2026). */
+  @Prop({ type: Types.ObjectId, default: null })
+  createdBy!: Types.ObjectId | null;
+
+  @Prop({ type: Types.ObjectId, default: null })
+  changedBy!: Types.ObjectId | null;
+
+  @Prop({ type: Date, default: null })
+  changedAt!: Date | null;
+
+  createdAt!: Date;
 }
 
 export type WeddingEventDocument = HydratedDocument<WeddingEventRecord>;

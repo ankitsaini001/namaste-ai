@@ -19,6 +19,7 @@ describe('validateApiEnv', () => {
       WEB_ORIGIN: 'http://localhost:3000',
       LOGIN_CODE_SECRET,
       COOKIE_SECURE: true,
+      EMAIL_CODE_IP_LIMIT: 10,
     });
   });
 

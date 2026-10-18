@@ -27,6 +27,7 @@ export const ERROR_CODES = [
   'JOIN_LINK_EXPIRED',
   'JOIN_EMAIL_MISMATCH',
   'LAST_ADMIN',
+  'LAST_EVENT',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

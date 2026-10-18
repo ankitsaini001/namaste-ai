@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { addYears, todayInIst } from '../ist';
 import { LIMITS } from '../limits';
 import { SETUP_STEPS } from './auth';
-import { idSchema } from './common';
+import { changeStampSchema, idSchema } from './common';
 
 export const EVENT_TYPES = [
   'engagement',
@@ -243,6 +243,8 @@ export const weddingSchema = z.object({
   groups: z.array(z.object({ id: idSchema, name: z.string() })),
   setupStep: z.enum(SETUP_STEPS),
   isDemo: z.boolean(),
+  added: changeStampSchema.nullable(),
+  lastChanged: changeStampSchema.nullable(),
 });
 export type Wedding = z.infer<typeof weddingSchema>;
 
@@ -262,6 +264,8 @@ export const eventSchema = z.object({
   showOnWebsite: z.boolean(),
   livestreamUrl: z.string().nullable(),
   albumId: idSchema,
+  added: changeStampSchema.nullable(),
+  lastChanged: changeStampSchema.nullable(),
 });
 export type WeddingEvent = z.infer<typeof eventSchema>;
 

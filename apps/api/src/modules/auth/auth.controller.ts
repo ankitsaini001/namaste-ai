@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { AUTH_RULES, type EmailCodeSent, type Me, SESSION_COOKIE } from '@mmm/shared';
 import type { Request, Response } from 'express';
 import { RateLimitService } from '../../common/rate-limit/rate-limit.service';
-import type { ApiEnv } from '../../config/env';
+import { type ApiEnv, EMAIL_CODE_IP_LIMIT } from '../../config/env';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UsersService } from '../users/users.service';
 import { EmailCodeRequestDto, EmailCodeVerifyDto } from './auth.dto';
@@ -37,7 +37,10 @@ export class AuthController {
     await this.rateLimits.enforce(
       'email_code_ip',
       clientIp(req),
-      { limit: 10, windowSeconds: 60 * 60 },
+      {
+        limit: this.config.get('EMAIL_CODE_IP_LIMIT', { infer: true }) ?? EMAIL_CODE_IP_LIMIT,
+        windowSeconds: 60 * 60,
+      },
       'Too many code requests from this network. Please try again later.',
     );
     const issued = await this.loginCodes.issue(body.email);

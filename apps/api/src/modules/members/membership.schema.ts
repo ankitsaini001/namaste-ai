@@ -20,6 +20,17 @@ export class Membership {
 
   @Prop({ type: Date, required: true })
   joinedAt!: Date;
+
+  /** Who invited them; null for whoever created the wedding. */
+  @Prop({ type: Types.ObjectId, default: null })
+  invitedBy!: Types.ObjectId | null;
+
+  /** The latest role change, by whom (owner's decision, 18 Oct 2026). */
+  @Prop({ type: Types.ObjectId, default: null })
+  roleChangedBy!: Types.ObjectId | null;
+
+  @Prop({ type: Date, default: null })
+  roleChangedAt!: Date | null;
 }
 
 export type MembershipDocument = HydratedDocument<Membership>;

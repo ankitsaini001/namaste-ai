@@ -276,6 +276,43 @@ describe('organisers (ORG-01 to ORG-10)', () => {
     });
   });
 
+  describe('who did what', () => {
+    it('shows who invited each organiser, changed their role and sent the invitation', async () => {
+      const admin = await newAdmin();
+      const second = await addOrganiser(admin, 'admin');
+      await send('patch', `/organisers/${second.id}`, admin.cookie, { role: 'manager' }).expect(
+        200,
+      );
+      // Choosing the role someone already has changes nothing.
+      await send('patch', `/organisers/${admin.id}`, admin.cookie, { role: 'admin' }).expect(200);
+
+      const { organisers } = await list(admin.cookie);
+      const [first, rohit] = organisers;
+      expect(first).toMatchObject({ added: { by: null }, lastChanged: null });
+      expect(rohit).toMatchObject({
+        added: { by: 'Princi Sharma' },
+        lastChanged: { by: 'Princi Sharma' },
+      });
+
+      // A resend by another Admin shows who sent it last.
+      await send('patch', `/organisers/${second.id}`, admin.cookie, { role: 'admin' }).expect(200);
+      const created = (await invite(admin.cookie, `sent.${counter}@example.com`).expect(201)).body
+        .data;
+      await db
+        .collection('users')
+        .updateOne({ _id: new Types.ObjectId(second.id) }, { $set: { name: 'Rohit Sharma' } });
+      const resent = await send(
+        'post',
+        `/organisers/invites/${created.id}/resend`,
+        second.cookie,
+      ).expect(200);
+      expect(resent.body.data).toMatchObject({
+        invitedByName: 'Princi Sharma',
+        sentByName: 'Rohit Sharma',
+      });
+    });
+  });
+
   describe('roles', () => {
     it('lets Managers see organisers but not change them (PRD §28)', async () => {
       const admin = await newAdmin();

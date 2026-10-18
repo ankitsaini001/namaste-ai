@@ -12,6 +12,7 @@ import {
 import { createHash, randomBytes } from 'node:crypto';
 import type { Connection, Model, Types } from 'mongoose';
 import { AppException } from '../../common/app.exception';
+import { changeStamp } from '../../common/change-stamp';
 import { RateLimitService } from '../../common/rate-limit/rate-limit.service';
 import type { ApiEnv } from '../../config/env';
 import { MembersService } from '../members/members.service';
@@ -53,11 +54,14 @@ export class OrganisersService {
       this.members.listForWedding(auth.weddingId),
       this.openInvites(auth.weddingId),
     ]);
-    const people = await this.users.findByIds([
-      ...memberships.map((m) => m.userId),
-      ...invites.map((i) => i.invitedBy),
-    ]);
+    const people = await this.users.findByIds(
+      [
+        ...memberships.flatMap((m) => [m.userId, m.invitedBy, m.roleChangedBy]),
+        ...invites.flatMap((i) => [i.invitedBy, i.sentBy]),
+      ].filter((id): id is Types.ObjectId => Boolean(id)),
+    );
     const byId = new Map(people.map((user) => [String(user._id), user]));
+    const names = new Map(people.map((user) => [String(user._id), user.name]));
 
     return {
       organisers: memberships.map((m) => {
@@ -69,11 +73,11 @@ export class OrganisersService {
           role: m.role,
           joinedAt: m.joinedAt.toISOString(),
           isYou: m.userId.equals(auth.userId),
+          added: changeStamp(names, m.invitedBy, m.joinedAt),
+          lastChanged: changeStamp(names, m.roleChangedBy, m.roleChangedAt),
         };
       }),
-      invites: invites.map((invite) =>
-        this.toInviteDto(invite, byId.get(String(invite.invitedBy))?.name ?? null, now),
-      ),
+      invites: invites.map((invite) => this.toInviteDto(invite, names, now)),
       limit: ORGANISER_RULES.maxOrganisers,
     };
   }
@@ -153,7 +157,7 @@ export class OrganisersService {
 
   /** ORG-06, ORG-07. */
   async changeRole(auth: WeddingContext, userId: Types.ObjectId, role: MemberRole) {
-    await this.members.changeRole(auth.weddingId, userId, role);
+    await this.members.changeRole(auth.weddingId, userId, role, auth.userId);
   }
 
   /** ORG-06, ORG-08: they lose access at once, on every device. */
@@ -248,7 +252,14 @@ export class OrganisersService {
           { session },
         );
         if (claimed.matchedCount === 0) throw linkExpired();
-        await this.members.add(invite.weddingId, userId, invite.role, session, now);
+        await this.members.add(
+          invite.weddingId,
+          userId,
+          invite.role,
+          invite.invitedBy,
+          session,
+          now,
+        );
       });
     } catch (error) {
       // The user joined a wedding at the same moment (memberships.userId is unique).
@@ -292,6 +303,7 @@ export class OrganisersService {
     const token = randomBytes(32).toString('base64url');
     invite.tokenHash = hashToken(token);
     invite.expiresAt = new Date(now.getTime() + ORGANISER_RULES.inviteDays * DAY_MS);
+    invite.sentBy = auth.userId;
     await invite.save();
 
     await this.notifications.sendEmail({
@@ -310,7 +322,8 @@ export class OrganisersService {
       idempotencyKey: `organiser_invite:${String(invite._id)}:${invite.expiresAt.getTime()}`,
       weddingId: auth.weddingId,
     });
-    return this.toInviteDto(invite, inviter?.name ?? null, now);
+    const names = await this.users.namesFor([invite.invitedBy, invite.sentBy]);
+    return this.toInviteDto(invite, names, now);
   }
 
   /**
@@ -332,15 +345,17 @@ export class OrganisersService {
 
   private toInviteDto(
     invite: OrganiserInviteDocument,
-    invitedByName: string | null,
+    names: ReadonlyMap<string, string | null>,
     now: Date,
   ): OrganiserInviteDto {
+    const nameOf = (id: Types.ObjectId | null) => (id ? (names.get(String(id)) ?? null) : null);
     return {
       id: String(invite._id),
       name: invite.invitedName,
       email: invite.email,
       role: invite.role,
-      invitedByName,
+      invitedByName: nameOf(invite.invitedBy),
+      sentByName: nameOf(invite.sentBy ?? invite.invitedBy),
       sentAt: new Date(
         invite.expiresAt.getTime() - ORGANISER_RULES.inviteDays * DAY_MS,
       ).toISOString(),

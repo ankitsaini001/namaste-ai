@@ -18,6 +18,16 @@ export class UsersService {
     return this.users.find({ _id: { $in: ids } });
   }
 
+  /** Names for "Added by …" and "Last changed by …" lines, looked up together. */
+  async namesFor(
+    ids: readonly (Types.ObjectId | null | undefined)[],
+  ): Promise<Map<string, string | null>> {
+    const wanted = [...new Set(ids.filter((id): id is Types.ObjectId => Boolean(id)).map(String))];
+    if (wanted.length === 0) return new Map();
+    const users = await this.users.find({ _id: { $in: wanted } }, { name: 1 });
+    return new Map(users.map((user) => [String(user._id), user.name]));
+  }
+
   findByEmail(email: string): Promise<UserDocument | null> {
     return this.users.findOne({ email });
   }

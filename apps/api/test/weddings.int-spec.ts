@@ -320,6 +320,9 @@ describe('wedding setup (WED-01 to WED-06, WED-09)', () => {
       });
       const me = meSchema.parse((await get('/me', cookie).expect(200)).body.data);
       expect(me.wedding?.title).toBe('Princi & Akshay Verma');
+      // Who changed it, for the "Last changed by" line (owner's decision, 18 Oct 2026).
+      expect(res.body.data.added.by).toBe('Princi Sharma');
+      expect(res.body.data.lastChanged.by).toBe('Princi Sharma');
       expect((await stored(id))?.description).toBeNull();
 
       await patch(cookie, { description: 'Two families, one celebration.' }).expect(200);

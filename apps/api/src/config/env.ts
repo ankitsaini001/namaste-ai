@@ -10,6 +10,9 @@ const baseEnvSchema = z.object({
 /** Variables both the API and the worker need. */
 export type BaseEnv = z.infer<typeof baseEnvSchema>;
 
+/** Login-code requests per IP per hour (API Design §10). */
+export const EMAIL_CODE_IP_LIMIT = 10;
+
 export const apiEnvSchema = baseEnvSchema.extend({
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   // Normalised to a bare origin so it matches the browser's Origin header exactly.
@@ -25,6 +28,9 @@ export const apiEnvSchema = baseEnvSchema.extend({
     .transform((value) => value === 'true'),
   // Express "trust proxy" setting when behind Caddy, so rate limits see the visitor's IP.
   TRUST_PROXY: z.string().min(1).optional(),
+  // Login-code requests per IP per hour (API Design §10). Keep 10 in production; the browser
+  // tests start their own API with more, since every test signs someone in.
+  EMAIL_CODE_IP_LIMIT: z.coerce.number().int().min(1).default(EMAIL_CODE_IP_LIMIT),
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;

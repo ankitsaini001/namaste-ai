@@ -35,21 +35,35 @@ export class MembersService {
     weddingId: Types.ObjectId,
     userId: Types.ObjectId,
     role: MemberRole,
+    invitedBy: Types.ObjectId | null,
     session: ClientSession,
     now = new Date(),
   ): Promise<void> {
-    await this.memberships.create([{ weddingId, userId, role, joinedAt: now }], { session });
+    await this.memberships.create([{ weddingId, userId, role, invitedBy, joinedAt: now }], {
+      session,
+    });
   }
 
-  /** ORG-06. Throws NOT_FOUND if they aren't in this wedding, LAST_ADMIN if no Admin would be left. */
-  async changeRole(weddingId: Types.ObjectId, userId: Types.ObjectId, role: MemberRole) {
+  /**
+   * ORG-06. Throws NOT_FOUND if they aren't in this wedding, LAST_ADMIN if no Admin would be left.
+   * Choosing the role they already have changes nothing, not even "Last changed by".
+   */
+  async changeRole(
+    weddingId: Types.ObjectId,
+    userId: Types.ObjectId,
+    role: MemberRole,
+    changedBy: Types.ObjectId,
+    now = new Date(),
+  ) {
     await this.withAdminCheck(weddingId, async (session) => {
-      const result = await this.memberships.updateOne(
+      const membership = await this.memberships.findOne({ weddingId, userId }, null, { session });
+      if (!membership) throw notAnOrganiser();
+      if (membership.role === role) return;
+      await this.memberships.updateOne(
         { weddingId, userId },
-        { $set: { role } },
+        { $set: { role, roleChangedBy: changedBy, roleChangedAt: now } },
         { session },
       );
-      if (result.matchedCount === 0) throw notAnOrganiser();
     });
   }
 

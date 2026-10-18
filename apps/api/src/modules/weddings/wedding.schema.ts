@@ -199,6 +199,15 @@ export class Wedding {
 
   @Prop({ type: Types.ObjectId, required: true })
   createdBy!: Types.ObjectId;
+
+  /** The latest change to the wedding's details, by whom (owner's decision, 18 Oct 2026). */
+  @Prop({ type: Types.ObjectId, default: null })
+  changedBy!: Types.ObjectId | null;
+
+  @Prop({ type: Date, default: null })
+  changedAt!: Date | null;
+
+  createdAt!: Date;
 }
 
 export type WeddingDocument = HydratedDocument<Wedding>;

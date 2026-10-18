@@ -41,7 +41,7 @@ export class WeddingsController {
       { id: user._id, email: user.email, name: user.name },
       body,
     );
-    return { data: this.weddings.toDto(wedding) };
+    return { data: await this.weddings.toDto(wedding) };
   }
 
   @Get()
@@ -50,7 +50,7 @@ export class WeddingsController {
     const wedding = await this.weddings.findById(auth.weddingId);
     if (!wedding)
       throw new AppException(HttpStatus.NOT_FOUND, 'NOT_FOUND', "We couldn't find your wedding.");
-    return { data: this.weddings.toDto(wedding) };
+    return { data: await this.weddings.toDto(wedding) };
   }
 
   /** WED-07: an Admin changes the wedding's details (API Design §13.3). */
@@ -61,8 +61,8 @@ export class WeddingsController {
     @CurrentAuth() auth: WeddingContext,
     @Body() body: UpdateWeddingDto,
   ): Promise<{ data: Wedding }> {
-    const wedding = await this.weddings.update(auth.weddingId, body);
-    return { data: this.weddings.toDto(wedding) };
+    const wedding = await this.weddings.update(auth.weddingId, body, auth.userId);
+    return { data: await this.weddings.toDto(wedding) };
   }
 
   /** Moves setup forward, for example past "Invite your family" (API Design §13.1). */
@@ -75,7 +75,7 @@ export class WeddingsController {
     @Body() body: SetupStepDto,
   ): Promise<{ data: Wedding }> {
     const wedding = await this.weddings.advanceSetup(auth.weddingId, body.step);
-    return { data: this.weddings.toDto(wedding) };
+    return { data: await this.weddings.toDto(wedding) };
   }
 
   @Get('slug-available')
