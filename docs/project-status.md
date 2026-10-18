@@ -10,9 +10,9 @@ A running log of what has been built. Add an entry whenever a major feature is f
 | Item              | Status                                                               |
 | ----------------- | -------------------------------------------------------------------- |
 | Current phase     | Phase 1 — Core (in progress)                                         |
-| Latest feature    | Organisers (ORG-01 to ORG-10), setup step 3 and the app navigation   |
+| Latest feature    | Wedding details in Settings (WED-07, WED-08, SET-01 details)         |
 | Up next           | Ceremonies in full (EVT), then guests (GST); Google sign-in (AUTH-01) when the OAuth client exists |
-| Main branch       | `dev` on GitHub, with login, wedding setup and organisers merged      |
+| Main branch       | `dev` on GitHub (up to organisers); wedding details is on `feat/wedding-details`, not yet merged |
 | Code checks       | Format, lint, typecheck, tests and build all pass                    |
 
 ## Release phases (PRD §31)
@@ -21,7 +21,7 @@ A running log of what has been built. Add an entry whenever a major feature is f
 | ----------------------- | -------------------------------------------- | ----------- |
 | Foundations             | Monorepo scaffold, local setup, CI           | ✅ Done     |
 | Public homepage         | Marketing page from the UX brief             | ✅ Done     |
-| 1. Core                 | AUTH, WED, ORG, EVT, GST, INV, RSVP, EML, WA, DASH | ⏳ In progress (email-code login, wedding setup, organisers, first overview done) |
+| 1. Core                 | AUTH, WED, ORG, EVT, GST, INV, RSVP, EML, WA, DASH | ⏳ In progress (email-code login, wedding setup and editing, organisers, first overview done) |
 | 2. Guest experience     | WEB, THM, LIVE                               | Not started |
 | 3. Photos and documents | GAL, UPL, QR, DOC                            | Not started |
 | 4. Money and planning   | MON, VEN, TSK, SHOP                          | Not started |
@@ -31,6 +31,63 @@ A running log of what has been built. Add an entry whenever a major feature is f
 ## Feature log
 
 Newest first.
+
+### 6. Wedding details in Settings (WED-07, WED-08, SET-01) — 18 October 2026
+
+**What was built**
+
+- A Settings page (`/app/settings`), in the navigation for Admins only, with "Wedding details":
+  the bride's and groom's names, title, date, city, description and website address, as in setup
+  step 1.
+  - The form starts with the current details. "Save changes" stays off until something changes,
+    and "Undo changes" puts everything back.
+  - Each field is checked like setup, next to the field. The website address has the same live
+    check, says "This is your current address." for the wedding's own, and is read-only with an
+    explanation once the website has been published (WED-08).
+  - After saving, the sidebar and overview show the new title and date straight away.
+- Managers who open Settings are told only Admins can change it; the API refuses them too.
+- API: `PATCH /v1/wedding` (Admins): only the fields sent change; a changed date must be today to
+  3 years ahead, and moves the upload closing date with it; the address must be free
+  (`SLUG_TAKEN`) and can't change once published (`SLUG_LOCKED`).
+- The website's main heading follows the couple's names until someone edits it (website editor).
+- Build: the web build now waits for the web typecheck (`apps/web/turbo.json`). Run together,
+  `next build` could delete the route types `next typegen` had just written, failing the check now
+  and then.
+
+**Decisions**
+
+- A small feature of its own rather than part of Organisers or Ceremonies.
+- A wedding that has already happened keeps its date while other details change; a new date must
+  be today to 3 years ahead.
+- The upload closing date moves with the wedding date until SET-04 lets Admins choose it.
+- Only the details part of Settings now; the other settings arrive with their features (RSVP
+  deadline with RSVP, WhatsApp message with WA, uploads and gallery link with GAL/UPL, groups with
+  GST, the cover image with uploads). Deleting the wedding (SET-06) is still to do.
+
+**Verification**
+
+- 241 unit and database tests pass (API 123, web 51, shared 63, email templates 4), plus format,
+  lint, typecheck and build. The 6 new database tests cover partial changes, the date rules and
+  upload date, the heading, the address (own, taken, reserved, locked) and Admin-only access.
+- 8 Playwright tests pass at desktop and phone sizes; the setup test now also edits the title and
+  city in Settings, checks the overview, and checks that a Manager has no Settings. axe finds no
+  WCAG 2.1 AA violations on the Settings page.
+- Manual QA on 18 October:
+  - errors on every field, with the cursor on the first
+  - Undo
+  - a taken address while typing, and one taken at the moment of saving
+  - a good change of title, date, description and address, kept after a reload
+  - a past wedding keeping its date
+  - a published website's locked address
+  - the phone layout (no sideways scrolling)
+
+**Known gaps and follow-ups**
+
+- Not built yet: deleting the wedding (SET-06), the cover image, guest groups and the other
+  settings above.
+- Someone with Settings open in another tab sees changes after a reload.
+
+**Commits:** `6c03819` … the commit adding this entry, on `feat/wedding-details` (5 commits).
 
 ### 5. Organisers (ORG-01 to ORG-10) — 18 October 2026
 

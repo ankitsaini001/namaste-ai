@@ -151,6 +151,10 @@ These decisions override the PDFs:
   wedding before the user has given their name.
 - The Organisers page is in the navigation for Managers too (read-only, with "Leave this
   wedding"); the UX brief lists it under the Admin-only items.
+- Editing the wedding (WED-07): the date rule (today to 3 years ahead) applies only when the date
+  changes, so a wedding that has happened keeps its date. Until SET-04 lets Admins choose it, the
+  upload closing date moves with the wedding date (30 days after). The website's main heading
+  follows the couple's names until someone edits it.
 
 ## Git
 
@@ -250,6 +254,13 @@ CI (`.github/workflows/ci.yml`) runs `pnpm install --frozen-lockfile`, `pnpm for
   in `send-email.handler.ts` and removed once the email is sent.
 - Times of day are entered and shown in IST whatever the browser's time zone: use `istToUtcIso`,
   `utcToIstParts` and `todayInIst` from `@mmm/shared` (and `formatCeremonyTime` in the web app).
+- Settings (`/app/settings`, Admin-only in the navigation) gets a section per group of settings
+  as their features land. The website-address field (`components/wedding/slug-field.tsx`) is
+  shared by setup and Settings.
+- `apps/web/turbo.json` makes the web build wait for the web typecheck: both write to `.next`, and
+  running them together can delete the route types the typecheck needs.
+- After switching git branches while `pnpm dev` runs, run `pnpm build`: the package watchers may
+  have rebuilt `@mmm/shared` or `@mmm/email-templates` from the other branch's files.
 - Web routes: `/setup` for users without a wedding (and the Admin's step 3), `/app/*` for
   everything else, `/join/:token` for organiser invitations. Pages under `/app` render inside
   `SignedInShell` (`app/(dashboard)/app/layout.tsx`), which does the redirects from the `/me`

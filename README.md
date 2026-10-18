@@ -51,6 +51,9 @@ couple, date, city and website address, then the ceremonies, then "Invite your f
 be skipped). The wedding overview is at http://localhost:3000/app. To go through setup again, log
 in with a new email address (each account belongs to one wedding).
 
+**Edit the wedding:** Admins change the couple, title, date, city, description and website address
+at http://localhost:3000/app/settings.
+
 **Invite an organiser:** invite another email address in setup step 3 or on
 http://localhost:3000/app/organisers. The invitation arrives in Mailpit; open its "Join the
 wedding" link in a private window and sign in with the invited address.
