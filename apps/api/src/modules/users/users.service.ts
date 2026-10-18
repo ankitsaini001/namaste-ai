@@ -14,6 +14,14 @@ export class UsersService {
     return this.users.findById(id);
   }
 
+  findByIds(ids: Types.ObjectId[]): Promise<UserDocument[]> {
+    return this.users.find({ _id: { $in: ids } });
+  }
+
+  findByEmail(email: string): Promise<UserDocument | null> {
+    return this.users.findOne({ email });
+  }
+
   /**
    * Finds the user for an email address that was just proven (a correct code), or creates them,
    * in one atomic step. Records the login time.

@@ -4,6 +4,8 @@ import {
   calendarDayToDate,
   type CreateWedding,
   type Me,
+  SETUP_STEPS,
+  type SetupStep,
   type SlugAvailability,
   slugProblem,
   SLUG_MESSAGES,
@@ -107,8 +109,8 @@ export class WeddingsService {
             invitationDesign: {
               message: 'Together with our families, we invite you to celebrate with us.',
             },
-            // Setup has two steps for now; "Invite your family" becomes a third with ORG.
-            setupStep: 'done',
+            // Details and ceremonies are saved together; "Invite your family" comes next.
+            setupStep: 'organisers',
             createdBy: creator.id,
           },
         ],
@@ -127,6 +129,17 @@ export class WeddingsService {
 
   findById(weddingId: Types.ObjectId): Promise<WeddingDocument | null> {
     return this.weddings.findById(weddingId);
+  }
+
+  /** Moves setup forward (WED-10). Never backwards, so a repeated or late call changes nothing. */
+  async advanceSetup(weddingId: Types.ObjectId, step: SetupStep): Promise<WeddingDocument> {
+    const wedding = await this.weddings.findById(weddingId);
+    if (!wedding) throw weddingNotFound();
+    if (SETUP_STEPS.indexOf(step) > SETUP_STEPS.indexOf(wedding.setupStep)) {
+      wedding.setupStep = step;
+      await wedding.save();
+    }
+    return wedding;
   }
 
   /** WED-04: is this website address free? Never throws for a bad address; it says why instead. */
@@ -171,6 +184,10 @@ export class WeddingsService {
       isDemo: wedding.isDemo,
     };
   }
+}
+
+function weddingNotFound(): AppException {
+  return new AppException(HttpStatus.NOT_FOUND, 'NOT_FOUND', "We couldn't find your wedding.");
 }
 
 function alreadyInWedding(): AppException {

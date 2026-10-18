@@ -49,6 +49,7 @@ export type User = z.infer<typeof userSchema>;
 
 export const ROLES = ['admin', 'manager', 'demo'] as const;
 export const SETUP_STEPS = ['details', 'events', 'organisers', 'done'] as const;
+export type SetupStep = (typeof SETUP_STEPS)[number];
 
 export const meSchema = z.object({
   user: userSchema,

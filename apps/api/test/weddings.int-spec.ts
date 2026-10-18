@@ -102,7 +102,7 @@ describe('wedding setup (WED-01 to WED-06, WED-09)', () => {
         date: `${weddingDay}T00:00:00.000Z`,
         slug: body.slug,
         slugLocked: false,
-        setupStep: 'done',
+        setupStep: 'organisers',
         photoCount: 0,
         photoLimit: 2000,
       });
@@ -152,7 +152,7 @@ describe('wedding setup (WED-01 to WED-06, WED-09)', () => {
       expect(me.role).toBe('admin');
       expect(me.wedding).toMatchObject({
         title: 'Princi & Akshay',
-        setupStep: 'done',
+        setupStep: 'organisers',
         isDemo: false,
       });
     });

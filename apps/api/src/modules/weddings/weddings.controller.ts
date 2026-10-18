@@ -1,11 +1,21 @@
-import { Body, Controller, Get, HttpStatus, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import type { SlugAvailability, Wedding } from '@mmm/shared';
 import { AppException } from '../../common/app.exception';
 import { type AuthContext, CurrentAuth, type WeddingContext } from '../session/auth-context';
+import { Roles, RolesGuard } from '../session/roles.guard';
 import { SessionGuard } from '../session/session.guard';
 import { WeddingMemberGuard } from '../session/wedding-member.guard';
 import { UsersService } from '../users/users.service';
-import { CreateWeddingDto, SlugQueryDto } from './wedding.dto';
+import { CreateWeddingDto, SetupStepDto, SlugQueryDto } from './wedding.dto';
 import { WeddingsService } from './weddings.service';
 
 /** The caller's wedding (API Design §13). No wedding ID in the path: it comes from the session. */
@@ -39,6 +49,19 @@ export class WeddingsController {
     const wedding = await this.weddings.findById(auth.weddingId);
     if (!wedding)
       throw new AppException(HttpStatus.NOT_FOUND, 'NOT_FOUND', "We couldn't find your wedding.");
+    return { data: this.weddings.toDto(wedding) };
+  }
+
+  /** Moves setup forward, for example past "Invite your family" (API Design §13.1). */
+  @Post('setup-step')
+  @UseGuards(WeddingMemberGuard, RolesGuard)
+  @Roles('admin')
+  @HttpCode(HttpStatus.OK)
+  async setupStep(
+    @CurrentAuth() auth: WeddingContext,
+    @Body() body: SetupStepDto,
+  ): Promise<{ data: Wedding }> {
+    const wedding = await this.weddings.advanceSetup(auth.weddingId, body.step);
     return { data: this.weddings.toDto(wedding) };
   }
 

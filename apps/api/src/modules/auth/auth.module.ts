@@ -22,5 +22,6 @@ import { MeService } from './me.service';
   ],
   controllers: [AuthController, MeController],
   providers: [LoginCodesService, MeService],
+  exports: [MeService],
 })
 export class AuthModule {}

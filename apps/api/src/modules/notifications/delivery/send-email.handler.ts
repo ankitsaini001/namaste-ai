@@ -9,13 +9,19 @@ import {
   type JobHandler,
   JobPostponed,
 } from '../../../jobs/job-handler';
-import { Email } from '../email.schema';
+import { Email, type EmailKind } from '../email.schema';
 import { EmailQuotaService, nextQuotaDay } from './email-quota.service';
 import { EmailRenderer } from './email-renderer';
 import { EMAIL_TRANSPORT, type EmailTransport } from './email-transport';
 
 /** Statuses from which an email may still be sent; anything else was already handled. */
 const SENDABLE = new Set(['queued', 'postponed']);
+
+/** Secrets in an email's data, removed once it has been sent. */
+const SECRET_FIELDS: Partial<Record<EmailKind, string[]>> = {
+  login_code: ['code'],
+  organiser_invite: ['joinUrl'],
+};
 
 /** Worker job: sends one email record, within today's allowance, exactly once. */
 @Injectable()
@@ -37,7 +43,7 @@ export class SendEmailHandler implements JobHandler<{ emailId: string }> {
     const email = await this.emails.findById(job.payload.emailId);
     if (!email || !SENDABLE.has(email.status)) return;
 
-    // A login code that has already expired is useless; don't send it.
+    // A login code or join link that has already expired is useless; don't send it.
     const expiresAt = email.templateData.expiresAt;
     if (typeof expiresAt === 'string' && new Date(expiresAt) <= new Date()) {
       await this.emails.updateOne(
@@ -71,8 +77,7 @@ export class SendEmailHandler implements JobHandler<{ emailId: string }> {
             lastError: null,
           },
           $inc: { attempts: 1 },
-          // The login code is a secret: remove it once it has been sent.
-          ...(email.kind === 'login_code' && { $unset: { 'templateData.code': '' } }),
+          ...secretsToRemove(email.kind),
         },
       );
     } catch (error) {
@@ -91,4 +96,10 @@ export class SendEmailHandler implements JobHandler<{ emailId: string }> {
       throw error;
     }
   }
+}
+
+function secretsToRemove(kind: EmailKind) {
+  const fields = SECRET_FIELDS[kind];
+  if (!fields) return {};
+  return { $unset: Object.fromEntries(fields.map((field) => [`templateData.${field}`, ''])) };
 }

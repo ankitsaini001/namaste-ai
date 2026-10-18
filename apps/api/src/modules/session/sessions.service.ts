@@ -48,4 +48,9 @@ export class SessionsService {
   async revoke(token: string): Promise<void> {
     await this.sessions.deleteOne({ tokenHash: hashSessionToken(token) });
   }
+
+  /** Logs the user out everywhere, for example when they are removed from a wedding (ORG-08). */
+  async revokeAllForUser(userId: Types.ObjectId): Promise<void> {
+    await this.sessions.deleteMany({ userId });
+  }
 }
