@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   alternativeSlug,
   createWeddingSchema,
+  updateWeddingSchema,
+  weddingDateProblem,
   defaultWeddingTitle,
   slugProblem,
   slugSchema,
@@ -114,5 +116,42 @@ describe('createWeddingSchema', () => {
     expect(createWeddingSchema.safeParse({ ...valid, events }).error?.issues[0]?.message).toMatch(
       /up to 20/,
     );
+  });
+});
+
+describe('updateWeddingSchema (WED-07)', () => {
+  it('accepts just the fields that changed', () => {
+    expect(updateWeddingSchema.parse({ title: ' Princi & Akshay Verma ' })).toEqual({
+      title: 'Princi & Akshay Verma',
+    });
+    expect(updateWeddingSchema.parse({ description: '' })).toEqual({ description: null });
+  });
+
+  it('needs at least one change, and checks each field like setup', () => {
+    expect(updateWeddingSchema.safeParse({}).error?.issues[0]?.message).toBe(
+      'Change at least one detail.',
+    );
+    expect(updateWeddingSchema.safeParse({ city: 'X' }).error?.issues[0]?.message).toMatch(
+      /at least 2 characters/,
+    );
+    expect(updateWeddingSchema.safeParse({ slug: 'admin' }).error?.issues[0]?.message).toMatch(
+      /reserved/,
+    );
+  });
+
+  it('leaves the date range to the API, which knows the current date', () => {
+    expect(updateWeddingSchema.safeParse({ date: '2020-01-01' }).success).toBe(true);
+    expect(updateWeddingSchema.safeParse({ date: '2020-02-31x' }).success).toBe(false);
+  });
+});
+
+describe('weddingDateProblem', () => {
+  it.each([
+    ['2026-10-17', null],
+    ['2026-10-16', 'The wedding date must be today or later.'],
+    ['2029-10-17', null],
+    ['2029-10-18', 'The wedding date must be within 3 years.'],
+  ])('%s → %s', (day, problem) => {
+    expect(weddingDateProblem(day, '2026-10-17')).toBe(problem);
   });
 });

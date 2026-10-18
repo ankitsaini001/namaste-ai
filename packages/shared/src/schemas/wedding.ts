@@ -152,6 +152,31 @@ const text = (label: string, { min, max }: { min: number; max: number }) =>
     .min(min, `The ${label} needs at least ${min} characters.`)
     .max(max, `Please keep the ${label} under ${max + 1} characters.`);
 
+/** A calendar day, YYYY-MM-DD. */
+const daySchema = z
+  .string({ error: 'Choose the wedding date.' })
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Choose the wedding date.')
+  .refine((day) => !Number.isNaN(Date.parse(day)), 'Choose the wedding date.');
+
+/** The main date: today (IST) or later, and at most 3 years ahead (PRD §6). */
+export function weddingDateProblem(day: string, today = todayInIst()): string | null {
+  if (day < today) return 'The wedding date must be today or later.';
+  if (day > addYears(today, WEDDING_RULES.maxYearsAhead)) {
+    return `The wedding date must be within ${WEDDING_RULES.maxYearsAhead} years.`;
+  }
+  return null;
+}
+
+const descriptionSchema = z
+  .string()
+  .trim()
+  .max(
+    WEDDING_RULES.descriptionMax,
+    `Please keep the description under ${WEDDING_RULES.descriptionMax + 1} characters.`,
+  )
+  .nullish()
+  .transform((value) => (value ? value : null));
+
 /** A ceremony as entered during setup (WED-05). Fuller details come with the Ceremonies feature. */
 export const ceremonyInputSchema = z.object({
   type: z.enum(EVENT_TYPES, { error: 'Choose a ceremony type.' }),
@@ -166,25 +191,12 @@ export const createWeddingSchema = z.object({
   brideName: text("bride's name", WEDDING_RULES.coupleName),
   groomName: text("groom's name", WEDDING_RULES.coupleName),
   title: text('wedding title', WEDDING_RULES.title),
-  date: z
-    .string({ error: 'Choose the wedding date.' })
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Choose the wedding date.')
-    .refine((day) => !Number.isNaN(Date.parse(day)), 'Choose the wedding date.')
-    .refine((day) => day >= todayInIst(), 'The wedding date must be today or later.')
-    .refine(
-      (day) => day <= addYears(todayInIst(), WEDDING_RULES.maxYearsAhead),
-      `The wedding date must be within ${WEDDING_RULES.maxYearsAhead} years.`,
-    ),
+  date: daySchema.superRefine((day, ctx) => {
+    const problem = weddingDateProblem(day);
+    if (problem) ctx.addIssue({ code: 'custom', message: problem });
+  }),
   city: text('city', WEDDING_RULES.city),
-  description: z
-    .string()
-    .trim()
-    .max(
-      WEDDING_RULES.descriptionMax,
-      `Please keep the description under ${WEDDING_RULES.descriptionMax + 1} characters.`,
-    )
-    .nullish()
-    .transform((value) => (value ? value : null)),
+  description: descriptionSchema,
   slug: slugSchema,
   events: z
     .array(ceremonyInputSchema)
@@ -193,6 +205,25 @@ export const createWeddingSchema = z.object({
 });
 export type CreateWedding = z.infer<typeof createWeddingSchema>;
 export type CreateWeddingInput = z.input<typeof createWeddingSchema>;
+
+/**
+ * PATCH /v1/wedding (API Design §13.3), the wedding details (WED-07). Send only what changed. The
+ * date's range is checked by the API only when it changes, since a wedding may already be past.
+ */
+export const updateWeddingSchema = z
+  .object({
+    brideName: text("bride's name", WEDDING_RULES.coupleName),
+    groomName: text("groom's name", WEDDING_RULES.coupleName),
+    title: text('wedding title', WEDDING_RULES.title),
+    date: daySchema,
+    city: text('city', WEDDING_RULES.city),
+    description: descriptionSchema,
+    slug: slugSchema,
+  })
+  .partial()
+  .refine((changes) => Object.keys(changes).length > 0, 'Change at least one detail.');
+export type UpdateWedding = z.infer<typeof updateWeddingSchema>;
+export type UpdateWeddingInput = z.input<typeof updateWeddingSchema>;
 
 // Shared data shapes (API Design §8.3, §8.4)
 export const weddingSchema = z.object({
