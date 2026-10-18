@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, Ref } from 'react';
 import { type ButtonSize, type ButtonVariant, buttonClass } from './button-styles';
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -6,6 +6,7 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: ButtonSize;
   /** Shows a small spinner and blocks repeat clicks while an action runs. */
   loading?: boolean;
+  ref?: Ref<HTMLButtonElement>;
 };
 
 export function Button({

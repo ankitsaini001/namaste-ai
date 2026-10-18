@@ -37,6 +37,22 @@ export function formatCeremonyTime(iso: string): { date: string; time: string } 
   };
 }
 
+/** "17 Oct" in IST, for when something happened or ends, such as an invitation. */
+export function formatDayMonth(iso: string): string {
+  return new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: IST_TIME_ZONE,
+  }).format(new Date(iso));
+}
+
+/** "Princi Sharma" → "PS", for avatars. */
+export function initials(name: string | null, fallback = '?'): string {
+  const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return fallback;
+  return (parts[0]![0]! + (parts.length > 1 ? parts.at(-1)![0]! : '')).toUpperCase();
+}
+
 export type Countdown = { state: 'upcoming' | 'today' | 'married'; days: number; label: string };
 
 /** DASH-01: "42 days to go", "Today is the day!", "Married 12 days ago" — counted in IST days. */

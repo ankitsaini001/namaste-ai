@@ -12,7 +12,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/text-field';
@@ -26,21 +26,53 @@ type Step = 'email' | 'code' | 'name';
 const headingClass =
   'font-serif text-[30px] leading-tight font-normal tracking-[-0.015em] sm:text-4xl';
 
+type LoginFlowProps = {
+  returnTo: string;
+  initialStep: Step;
+  /** Replaces "Welcome to Make My Marriage" on the email step. */
+  heading?: string;
+  subheading?: string;
+  /** Shown above every step, such as the invitation on the join page (UX brief, Screen 4). */
+  intro?: ReactNode;
+  /** Prefills the name step, for example with the name an organiser was invited by. */
+  suggestedName?: string;
+  /** Runs instead of going to `returnTo` once signed in with a name. */
+  onSignedIn?: () => void;
+};
+
 /** Email → 6-digit code → (first time only) name. No passwords anywhere (AUTH-02 to AUTH-05). */
-export function LoginFlow({ returnTo, initialStep }: { returnTo: string; initialStep: Step }) {
+export function LoginFlow({
+  returnTo,
+  initialStep,
+  heading,
+  subheading,
+  intro,
+  suggestedName,
+  onSignedIn,
+}: LoginFlowProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [step, setStep] = useState<Step>(initialStep);
   const [email, setEmail] = useState('');
   const headingRef = useRef<HTMLHeadingElement>(null);
+  // Signed in with a name: go on, once. Both the signed-in check and the name step can get here.
+  const onSignedInRef = useRef(onSignedIn);
+  onSignedInRef.current = onSignedIn;
+  const finished = useRef(false);
+  const finish = useCallback(() => {
+    if (finished.current) return;
+    finished.current = true;
+    if (onSignedInRef.current) onSignedInRef.current();
+    else router.replace(returnTo);
+  }, [returnTo, router]);
 
   // Already signed in? Go straight on. A 401 here is the normal case.
   const me = useQuery({ queryKey: meQueryKey, queryFn: authApi.me, retry: false });
   useEffect(() => {
     if (!me.data) return;
     if (me.data.needsName) setStep('name');
-    else router.replace(returnTo);
-  }, [me.data, returnTo, router]);
+    else finish();
+  }, [me.data, finish]);
   useEffect(() => {
     if (step === 'name' && me.error instanceof ApiError && me.error.status === 401)
       setStep('email');
@@ -56,32 +88,43 @@ export function LoginFlow({ returnTo, initialStep }: { returnTo: string; initial
     headingRef.current?.focus();
   }, [step]);
 
+  let content: ReactNode;
   if (step === 'code') {
-    return (
+    content = (
       <CodeStep
         email={email}
         headingRef={headingRef}
         onBack={() => setStep('email')}
         onSignedIn={(needsName) => {
+          // A new user goes on to the name step; me.data then finishes the others.
           if (needsName) setStep('name');
-          else router.replace(returnTo);
+        }}
+      />
+    );
+  } else if (step === 'name') {
+    content = (
+      <NameStep headingRef={headingRef} defaultName={suggestedName ?? ''} onDone={finish} />
+    );
+  } else {
+    content = (
+      <EmailStep
+        headingRef={headingRef}
+        heading={heading}
+        subheading={subheading}
+        defaultEmail={email}
+        onSent={(sentTo) => {
+          setEmail(sentTo);
+          void queryClient.invalidateQueries({ queryKey: meQueryKey });
+          setStep('code');
         }}
       />
     );
   }
-  if (step === 'name') {
-    return <NameStep headingRef={headingRef} onDone={() => router.replace(returnTo)} />;
-  }
   return (
-    <EmailStep
-      headingRef={headingRef}
-      defaultEmail={email}
-      onSent={(sentTo) => {
-        setEmail(sentTo);
-        void queryClient.invalidateQueries({ queryKey: meQueryKey });
-        setStep('code');
-      }}
-    />
+    <>
+      {intro}
+      {content}
+    </>
   );
 }
 
@@ -89,10 +132,14 @@ type HeadingRef = React.RefObject<HTMLHeadingElement | null>;
 
 function EmailStep({
   headingRef,
+  heading = 'Welcome to Make My Marriage',
+  subheading = 'Sign in or create your account. No passwords to remember.',
   defaultEmail,
   onSent,
 }: {
   headingRef: HeadingRef;
+  heading?: string;
+  subheading?: string;
   defaultEmail: string;
   onSent: (email: string) => void;
 }) {
@@ -109,11 +156,9 @@ function EmailStep({
   return (
     <>
       <h1 ref={headingRef} tabIndex={-1} className={`${headingClass} focus:outline-none`}>
-        Welcome to Make My Marriage
+        {heading}
       </h1>
-      <p className="mt-3 text-body text-muted">
-        Sign in or create your account. No passwords to remember.
-      </p>
+      <p className="mt-3 text-body text-muted">{subheading}</p>
       <form
         className="mt-8"
         noValidate
@@ -306,11 +351,19 @@ function CodeStep({
   );
 }
 
-function NameStep({ headingRef, onDone }: { headingRef: HeadingRef; onDone: () => void }) {
+function NameStep({
+  headingRef,
+  defaultName,
+  onDone,
+}: {
+  headingRef: HeadingRef;
+  defaultName: string;
+  onDone: () => void;
+}) {
   const queryClient = useQueryClient();
   const form = useForm<UpdateMe>({
     resolver: zodResolver(updateMeSchema),
-    defaultValues: { name: '' },
+    defaultValues: { name: defaultName },
   });
   const save = useMutation({
     mutationFn: ({ name }: UpdateMe) => authApi.updateName(name),

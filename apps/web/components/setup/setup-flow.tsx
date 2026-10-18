@@ -17,6 +17,7 @@ import {
 import { weddingApi } from '@/lib/wedding-api';
 import { CeremoniesStep, weddingRow } from './ceremonies-step';
 import { DETAIL_FIELDS, DetailsStep } from './details-step';
+import { InviteFamilyStep } from './invite-step';
 
 /** Sends people to the right place, then runs the two setup steps. */
 export function SetupFlow() {
@@ -29,15 +30,17 @@ export function SetupFlow() {
   const signedOut = me.error instanceof ApiError && me.error.status === 401;
   const needsName = me.data?.needsName === true;
   const hasWedding = Boolean(me.data?.wedding);
+  // Step 3 comes after the wedding exists; only its Admin sees it (WED-01, WED-10).
+  const inviting = me.data?.wedding?.setupStep === 'organisers' && me.data.role === 'admin';
 
   useEffect(() => {
     if (leaving.current) return;
     if (signedOut) router.replace('/login?returnTo=/setup');
     else if (needsName) router.replace('/login?step=name&returnTo=/setup');
-    else if (hasWedding) router.replace('/app');
-  }, [signedOut, needsName, hasWedding, router]);
+    else if (hasWedding && !inviting) router.replace('/app');
+  }, [signedOut, needsName, hasWedding, inviting, router]);
 
-  const ready = me.data && !needsName && !hasWedding;
+  const ready = me.data && !needsName && (!hasWedding || inviting);
   return (
     <div className="min-h-screen bg-ivory">
       <AppHeader
@@ -46,7 +49,9 @@ export function SetupFlow() {
       />
       <main id="main">
         <Container className="max-w-3xl py-8 lg:py-12">
-          {ready ? (
+          {ready && inviting ? (
+            <InviteFamilyStep />
+          ) : ready ? (
             <SetupWizard userId={me.data.user.id} />
           ) : me.isError && !signedOut ? (
             <p role="alert" className="text-body">
@@ -133,8 +138,8 @@ function SetupWizard({ userId }: { userId: string }) {
     onMutate: () => setServerError(null),
     onSuccess: async () => {
       clearSetupDraft(userId);
+      // The wedding now exists at setup step 3, which SetupFlow shows next.
       await queryClient.invalidateQueries({ queryKey: meQueryKey });
-      router.replace('/app');
     },
     onError: (error) => {
       if (error instanceof ApiError && error.code === 'ALREADY_IN_WEDDING') {
@@ -157,7 +162,7 @@ function SetupWizard({ userId }: { userId: string }) {
   return (
     <>
       <p className="text-eyebrow font-semibold text-champagne-ink uppercase">
-        Step {stepNumber} of 2
+        Step {stepNumber} of 3
       </p>
       <h1
         ref={headingRef}

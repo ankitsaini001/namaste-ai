@@ -22,6 +22,27 @@ export async function readLoginCode(email: string, timeoutMs = 20_000): Promise<
   throw new Error(`No login code email for ${email} within ${timeoutMs}ms`);
 }
 
+/** Waits for the organiser invitation email to reach Mailpit and returns its join link. */
+export async function readJoinLink(email: string, timeoutMs = 20_000): Promise<string> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const res = await fetch(
+      `${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${email}" subject:"help plan"`)}`,
+    );
+    const body = (await res.json()) as { messages: { ID: string }[] };
+    const id = body.messages[0]?.ID;
+    if (id) {
+      const message = (await (await fetch(`${MAILPIT}/api/v1/message/${id}`)).json()) as {
+        Text: string;
+      };
+      const link = message.Text.match(/https?:\/\/\S+\/join\/[A-Za-z0-9_-]+/)?.[0];
+      if (link) return link;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error(`No invitation email for ${email} within ${timeoutMs}ms`);
+}
+
 /** Signs a brand-new organiser in with an email code and gives their name; ends on /setup. */
 export async function signUp(page: Page, name: string, email = uniqueEmail('user')) {
   await page.goto('/login');

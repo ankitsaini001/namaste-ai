@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { countdown, formatCeremonyTime, formatWeddingDate } from './wedding-format';
+import {
+  countdown,
+  formatCeremonyTime,
+  formatDayMonth,
+  formatWeddingDate,
+  initials,
+} from './wedding-format';
 
 const WEDDING = '2027-02-14T00:00:00.000Z';
 
@@ -29,5 +35,23 @@ describe('formatting', () => {
       date: 'Fri, 12 Feb',
       time: '4:00 pm',
     });
+  });
+});
+
+describe('formatDayMonth', () => {
+  it('shows the IST day', () => {
+    // 20:00 UTC on 16 Oct is already 17 Oct in India.
+    expect(formatDayMonth('2026-10-16T20:00:00.000Z')).toBe('17 Oct');
+  });
+});
+
+describe('initials', () => {
+  it.each([
+    ['Princi Sharma', 'PS'],
+    ['Rohit', 'R'],
+    ['  meera   kabir nair ', 'MN'],
+    [null, '?'],
+  ])('%j → %s', (name, expected) => {
+    expect(initials(name)).toBe(expected);
   });
 });

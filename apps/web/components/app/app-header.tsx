@@ -1,18 +1,13 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/ui/container';
 import { Logo } from '@/components/ui/logo';
-import { authApi } from '@/lib/auth-api';
+import { useLogout } from './use-logout';
 
 const ROLE_LABEL = { admin: 'Admin', manager: 'Manager', demo: 'Demo' } as const;
 
-/**
- * The signed-in top bar. A sidebar with every section arrives once there is more than one page.
- * `onLeave` runs before logging out, so the page doesn't react to its own 401.
- */
+/** The top bar during setup, before the app's navigation applies. */
 export function AppHeader({
   name,
   role,
@@ -22,16 +17,7 @@ export function AppHeader({
   role?: keyof typeof ROLE_LABEL | null;
   onLeave?: () => void;
 }) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const logout = useMutation({
-    mutationFn: authApi.logout,
-    onSuccess: () => {
-      onLeave?.();
-      router.replace('/login');
-      queryClient.clear();
-    },
-  });
+  const logout = useLogout(onLeave);
 
   return (
     <header className="border-b border-line bg-ivory">

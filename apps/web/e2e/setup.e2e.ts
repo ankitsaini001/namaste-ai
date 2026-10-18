@@ -1,14 +1,19 @@
 import { expect, test } from '@playwright/test';
-import { expectAccessible, signUp } from './support';
+import { expectAccessible, readJoinLink, readLoginCode, signUp, uniqueEmail } from './support';
 
 /** A calendar day `days` from now, as the date inputs expect it (YYYY-MM-DD). */
 const dayFromNow = (days: number) =>
   new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
 
 test.describe('wedding setup', () => {
-  test('a new organiser sets up their wedding and sees the overview', async ({ page }) => {
+  test('a new organiser sets up their wedding, invites family, and a Manager joins', async ({
+    page,
+    browser,
+  }) => {
+    // Two people sign in and go through setup: give it more than the default 30 seconds.
+    test.slow();
     await signUp(page, 'Princi Sharma');
-    await expect(page.getByText('Step 1 of 2')).toBeVisible();
+    await expect(page.getByText('Step 1 of 3')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Your wedding' })).toBeVisible();
     await expectAccessible(page);
 
@@ -66,11 +71,24 @@ test.describe('wedding setup', () => {
 
     await page.getByRole('button', { name: 'Create our wedding' }).click();
 
+    // Step 3: invite family (WED-01, ORG-01).
+    await expect(page.getByText('Step 3 of 3')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Invite your family' })).toBeFocused();
+    await expectAccessible(page);
+    const rohitEmail = uniqueEmail('rohit');
+    await page.getByLabel('Their name').fill('Rohit Sharma');
+    await page.getByLabel('Their email address').fill(rohitEmail);
+    await expect(page.getByLabel(/^Manager/)).toBeChecked();
+    await page.getByRole('button', { name: 'Send invitation' }).click();
+    await expect(page.getByText(`Invitation sent to ${rohitEmail}.`)).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Invited so far (1)' })).toBeVisible();
+    await page.getByRole('button', { name: 'Go to your wedding' }).click();
+
     // The overview (DASH-01, DASH-03, DASH-06).
     await expect(page).toHaveURL(/\/app$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Princi & Akshay' })).toBeVisible();
     await expect(page.getByText('days to go')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Getting ready · 1 of 6 done' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Getting ready · 2 of 6 done' })).toBeVisible();
     const upcoming = page.getByRole('region', { name: 'Upcoming ceremonies' });
     await expect(upcoming.getByRole('listitem')).toHaveText([
       /Mehendi/,
@@ -83,5 +101,47 @@ test.describe('wedding setup', () => {
     await page.goto('/setup');
     await expect(page).toHaveURL(/\/app$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Princi & Akshay' })).toBeVisible();
+
+    // The Organisers page shows Rohit waiting to join (ORG-05).
+    await page
+      .getByRole('navigation', { name: 'Main' })
+      .getByRole('link', { name: 'Organisers' })
+      .filter({ visible: true })
+      .click();
+    await expect(page).toHaveURL(/\/app\/organisers$/);
+    await expect(page.getByRole('heading', { name: 'Waiting to join (1)' })).toBeVisible();
+    await expect(page.getByText(rohitEmail)).toBeVisible();
+    await expectAccessible(page);
+
+    // Rohit opens the join link in his own browser and signs in with the invited email (ORG-03).
+    const rohitBrowser = await browser.newContext({ viewport: page.viewportSize() ?? undefined });
+    const rohit = await rohitBrowser.newPage();
+    await rohit.goto(await readJoinLink(rohitEmail));
+    await expect(rohit.getByRole('heading', { name: 'Join the wedding' })).toBeVisible();
+    await expect(
+      rohit.getByText('Princi Sharma has invited you to help plan Princi & Akshay as a Manager.'),
+    ).toBeVisible();
+    await expectAccessible(rohit);
+    await rohit.getByLabel('Email address').fill(rohitEmail);
+    await rohit.getByRole('button', { name: 'Email me a code' }).click();
+    await rohit.getByLabel('Digit 1 of 6').pressSequentially(await readLoginCode(rohitEmail));
+    // The name he was invited with is filled in for him.
+    await expect(rohit.getByLabel('Your name')).toHaveValue('Rohit Sharma');
+    await rohit.getByRole('button', { name: 'Continue' }).click();
+
+    await expect(rohit).toHaveURL(/\/app$/);
+    await expect(rohit.getByRole('heading', { level: 1, name: 'Princi & Akshay' })).toBeVisible();
+    await rohit.goto('/app/organisers');
+    await expect(rohit.getByRole('heading', { name: 'Planning together (2)' })).toBeVisible();
+    // Managers see who's helping but can't invite or change anyone (PRD §28).
+    await expect(rohit.getByRole('heading', { name: 'Invite someone' })).toHaveCount(0);
+    await expect(rohit.getByRole('button', { name: 'Leave this wedding' })).toBeVisible();
+    await expectAccessible(rohit);
+    await rohitBrowser.close();
+
+    // Back with Princi: Rohit has joined.
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Planning together (2)' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Waiting to join/ })).toHaveCount(0);
   });
 });

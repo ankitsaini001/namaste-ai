@@ -3,11 +3,15 @@
 import type { Wedding, WeddingEvent } from '@mmm/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Check } from 'lucide-react';
+import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Container } from '@/components/ui/container';
 import { Eyebrow } from '@/components/ui/eyebrow';
 import { heading } from '@/components/ui/typography';
 import { cn } from '@/lib/cn';
+import { organisersApi, organisersQueryKey } from '@/lib/organisers-api';
 import { eventsQueryKey, weddingApi, weddingQueryKey } from '@/lib/wedding-api';
 import { countdown, formatCeremonyTime, formatWeddingDate } from '@/lib/wedding-format';
 
@@ -15,42 +19,53 @@ import { countdown, formatCeremonyTime, formatWeddingDate } from '@/lib/wedding-
 export function Overview() {
   const wedding = useQuery({ queryKey: weddingQueryKey, queryFn: weddingApi.get });
   const events = useQuery({ queryKey: eventsQueryKey, queryFn: weddingApi.events });
+  const organisers = useQuery({ queryKey: organisersQueryKey, queryFn: organisersApi.list });
+  const queries = [wedding, events, organisers];
 
-  if (wedding.isPending || events.isPending) {
+  if (queries.some((query) => query.isPending)) {
     return (
-      <p role="status" className="text-body text-muted">
-        Loading your wedding…
-      </p>
+      <Page>
+        <p role="status" className="text-body text-muted">
+          Loading your wedding…
+        </p>
+      </Page>
     );
   }
-  const error = wedding.error ?? events.error;
+  const error = queries.find((query) => query.error)?.error;
   if (error) {
     return (
-      <div role="alert" className="max-w-lg">
-        <p className="text-body">{error.message}</p>
-        <Button
-          className="mt-6"
-          onClick={() => {
-            void wedding.refetch();
-            void events.refetch();
-          }}
-        >
-          Try again
-        </Button>
-      </div>
+      <Page>
+        <div role="alert" className="max-w-lg">
+          <p className="text-body">{error.message}</p>
+          <Button className="mt-6" onClick={() => queries.forEach((query) => void query.refetch())}>
+            Try again
+          </Button>
+        </div>
+      </Page>
     );
   }
 
+  const team = organisers.data!;
   return (
-    <div className="space-y-6">
-      <WelcomeCard wedding={wedding.data!} />
-      <div className="grid items-start gap-6 lg:grid-cols-3">
-        <GettingReady ceremonies={events.data!.length} className="lg:col-span-2" />
-        <Ceremonies events={events.data!} />
+    <Page>
+      <div className="space-y-6">
+        <WelcomeCard wedding={wedding.data!} />
+        <div className="grid items-start gap-6 lg:grid-cols-3">
+          <GettingReady
+            ceremonies={events.data!.length}
+            invitedFamily={team.organisers.length > 1 || team.invites.length > 0}
+            className="lg:col-span-2"
+          />
+          <Ceremonies events={events.data!} />
+        </div>
       </div>
-    </div>
+    </Page>
   );
 }
+
+const Page = ({ children }: { children: ReactNode }) => (
+  <Container className="py-8 lg:py-10">{children}</Container>
+);
 
 function WelcomeCard({ wedding }: { wedding: Wedding }) {
   const when = countdown(wedding.date);
@@ -93,18 +108,26 @@ function WelcomeCard({ wedding }: { wedding: Wedding }) {
   );
 }
 
-const READY_STEPS = [
-  'Add ceremonies',
-  'Invite your family',
-  'Add guests',
-  'Send invitations',
-  'Publish your website',
-  'Print your photo QR code',
-] as const;
+/** DASH-03. A step with a link can be done now; the others arrive with their features. */
+const READY_STEPS: readonly { label: string; href?: string }[] = [
+  { label: 'Add ceremonies' },
+  { label: 'Invite your family', href: '/app/organisers' },
+  { label: 'Add guests' },
+  { label: 'Send invitations' },
+  { label: 'Publish your website' },
+  { label: 'Print your photo QR code' },
+];
 
-/** DASH-03. Only "Add ceremonies" can be done so far; the others arrive with their features. */
-function GettingReady({ ceremonies, className }: { ceremonies: number; className?: string }) {
-  const done = [ceremonies > 0, false, false, false, false, false];
+function GettingReady({
+  ceremonies,
+  invitedFamily,
+  className,
+}: {
+  ceremonies: number;
+  invitedFamily: boolean;
+  className?: string;
+}) {
+  const done = [ceremonies > 0, invitedFamily, false, false, false, false];
   const count = done.filter(Boolean).length;
   if (count === READY_STEPS.length) return null;
 
@@ -137,7 +160,7 @@ function GettingReady({ ceremonies, className }: { ceremonies: number; className
       <ol className="mt-6 grid gap-3 sm:grid-cols-2">
         {READY_STEPS.map((step, index) => (
           <li
-            key={step}
+            key={step.label}
             className={cn(
               'flex items-center gap-3 rounded-xl border px-4 py-3',
               done[index] ? 'border-line bg-ivory' : 'border-line bg-white',
@@ -152,9 +175,17 @@ function GettingReady({ ceremonies, className }: { ceremonies: number; className
             >
               {done[index] ? <Check className="size-4" strokeWidth={2} /> : index + 1}
             </span>
-            <span className="flex-1 text-sm font-medium text-ink">{step}</span>
+            <span className="flex-1 text-sm font-medium text-ink">{step.label}</span>
             {done[index] ? (
               <span className="text-xs font-medium text-green-ink">Done</span>
+            ) : step.href ? (
+              <Link
+                href={step.href}
+                className="inline-flex min-h-11 items-center text-sm font-medium text-aubergine underline underline-offset-4"
+              >
+                Start
+                <span className="sr-only">: {step.label}</span>
+              </Link>
             ) : (
               <Badge tone="pending">Coming soon</Badge>
             )}
