@@ -24,6 +24,11 @@ import {
 } from './ceremony-form';
 import { BackLink } from './new-ceremony';
 
+/** Not this wedding's, deleted, or not a ceremony address at all. */
+const isNotFound = (error: Error) =>
+  error instanceof ApiError &&
+  (error.status === 404 || (error.status === 400 && error.code === 'VALIDATION_FAILED'));
+
 const TYPE_LABEL: Record<WeddingEvent['type'], string> = {
   engagement: 'Engagement',
   roka: 'Roka',
@@ -50,9 +55,7 @@ export function EditCeremony({ id }: { id: string }) {
       ) : event.isError ? (
         <div role="alert" className="mt-6">
           <h1 className={heading.h2}>
-            {event.error instanceof ApiError && event.error.status === 404
-              ? 'Ceremony not found'
-              : 'Something went wrong'}
+            {isNotFound(event.error) ? 'Ceremony not found' : 'Something went wrong'}
           </h1>
           <p className="mt-3 text-body text-muted">{event.error.message}</p>
           <ButtonLink href="/app/ceremonies" variant="secondary" className="mt-6">

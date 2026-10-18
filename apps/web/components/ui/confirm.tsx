@@ -37,7 +37,13 @@ export function ConfirmPanel({
   children?: ReactNode;
 }) {
   const confirmRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => confirmRef.current?.focus(), []);
+  // Focus the confirm button once it can take focus (it waits while, say, the impact loads).
+  const focused = useRef(false);
+  useEffect(() => {
+    if (pending || focused.current) return;
+    focused.current = true;
+    confirmRef.current?.focus();
+  }, [pending]);
   return (
     <div
       role="group"
