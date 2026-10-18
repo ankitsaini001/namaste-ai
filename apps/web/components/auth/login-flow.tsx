@@ -34,8 +34,8 @@ type LoginFlowProps = {
   subheading?: string;
   /** Shown above every step, such as the invitation on the join page (UX brief, Screen 4). */
   intro?: ReactNode;
-  /** Prefills the name step, for example with the name an organiser was invited by. */
-  suggestedName?: string;
+  /** A name to prefill on the name step for this email, such as the name someone was invited by. */
+  suggestName?: (email: string) => string | undefined;
   /** Runs instead of going to `returnTo` once signed in with a name. */
   onSignedIn?: () => void;
 };
@@ -47,7 +47,7 @@ export function LoginFlow({
   heading,
   subheading,
   intro,
-  suggestedName,
+  suggestName,
   onSignedIn,
 }: LoginFlowProps) {
   const router = useRouter();
@@ -103,7 +103,11 @@ export function LoginFlow({
     );
   } else if (step === 'name') {
     content = (
-      <NameStep headingRef={headingRef} defaultName={suggestedName ?? ''} onDone={finish} />
+      <NameStep
+        headingRef={headingRef}
+        defaultName={suggestName?.(email || me.data?.user.email || '') ?? ''}
+        onDone={finish}
+      />
     );
   } else {
     content = (

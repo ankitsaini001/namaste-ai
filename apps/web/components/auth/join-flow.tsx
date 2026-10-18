@@ -1,6 +1,6 @@
 'use client';
 
-import type { JoinDetails } from '@mmm/shared';
+import { type JoinDetails, maskEmail } from '@mmm/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
@@ -29,6 +29,8 @@ export function JoinFlow({ token }: { token: string }) {
   // A new sign-in after "Log out" starts a fresh LoginFlow.
   const [attempt, setAttempt] = useState(0);
   const joining = useRef(false);
+  const me = useQuery({ queryKey: meQueryKey, queryFn: authApi.me, retry: false });
+  const hasWedding = Boolean(me.data?.wedding);
 
   const accept = useMutation({
     mutationFn: () => organisersApi.accept(token),
@@ -57,11 +59,13 @@ export function JoinFlow({ token }: { token: string }) {
       </p>
     );
   }
-  if (details.isError) return <LinkProblem message={details.error.message} />;
+  if (details.isError) {
+    return <LinkProblem message={details.error.message} hasWedding={hasWedding} />;
+  }
 
   const error = accept.error instanceof ApiError ? accept.error : null;
   if (error?.code === 'JOIN_LINK_EXPIRED' || error?.code === 'JOIN_LINK_INVALID') {
-    return <LinkProblem message={error.message} />;
+    return <LinkProblem message={error.message} hasWedding={hasWedding} />;
   }
   if (error?.code === 'ALREADY_IN_WEDDING') {
     return (
@@ -108,7 +112,12 @@ export function JoinFlow({ token }: { token: string }) {
         heading="Join the wedding"
         subheading="Sign in with the email address your invitation was sent to. No passwords to remember."
         intro={<Invitation details={details.data} />}
-        suggestedName={details.data.invitedName}
+        // The invited name only fits someone signing in with the invited email.
+        suggestName={(email) =>
+          maskEmail(email.toLowerCase()) === details.data.emailHint
+            ? details.data.invitedName
+            : undefined
+        }
         onSignedIn={() => {
           if (joining.current) return;
           joining.current = true;
@@ -144,14 +153,21 @@ function Invitation({ details }: { details: JoinDetails }) {
   );
 }
 
-function LinkProblem({ message }: { message: string }) {
+/** A link that can't be used. Someone already in a wedding, perhaps this one, can go to it. */
+function LinkProblem({ message, hasWedding }: { message: string; hasWedding: boolean }) {
   return (
     <>
       <h1 className={headingClass}>This invitation link doesn’t work</h1>
       <p className="mt-3 text-body text-muted">{message}</p>
-      <ButtonLink href="/login" variant="secondary" className="mt-8 w-full">
-        Go to login
-      </ButtonLink>
+      {hasWedding ? (
+        <ButtonLink href="/app" className="mt-8 w-full">
+          Go to your wedding
+        </ButtonLink>
+      ) : (
+        <ButtonLink href="/login" variant="secondary" className="mt-8 w-full">
+          Go to login
+        </ButtonLink>
+      )}
     </>
   );
 }
