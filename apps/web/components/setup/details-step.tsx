@@ -6,20 +6,17 @@ import {
   createWeddingSchema,
   defaultWeddingTitle,
   SLUG_MESSAGES,
-  slugProblem,
   suggestSlug,
   todayInIst,
   WEDDING_RULES,
 } from '@mmm/shared';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { TextArea } from '@/components/ui/text-area';
 import { TextField } from '@/components/ui/text-field';
-import { cn } from '@/lib/cn';
+import { SlugField, slugQuery } from '@/components/wedding/slug-field';
 import type { SetupDraft } from '@/lib/setup-draft';
-import { weddingApi } from '@/lib/wedding-api';
 
 type Details = SetupDraft['details'];
 type Field = 'brideName' | 'groomName' | 'title' | 'date' | 'city' | 'description' | 'slug';
@@ -65,12 +62,6 @@ function suggestions(details: Details, today: string): string[] {
   const year = (details.date || today).slice(0, 4);
   return [base, ...Array.from({ length: 9 }, (_, i) => alternativeSlug(base, year, i + 1))];
 }
-
-const slugQuery = (slug: string) => ({
-  queryKey: ['slug-available', slug],
-  queryFn: () => weddingApi.slugAvailable(slug),
-  staleTime: 30_000,
-});
 
 /**
  * Step 1 (WED-01): the couple, title, date, city, description and website address. The title and
@@ -239,114 +230,5 @@ export function DetailsStep({
         </Button>
       </div>
     </form>
-  );
-}
-
-/** The website address with its live availability check (WED-04). */
-function SlugField({
-  value,
-  error,
-  onChange,
-  onTaken,
-  takenNote,
-}: {
-  value: string;
-  error: string | undefined;
-  onChange: (slug: string) => void;
-  /** Set while the address is a suggestion: called instead of showing "taken". */
-  onTaken?: () => void;
-  takenNote: string | null;
-}) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), 400);
-    return () => clearTimeout(timer);
-  }, [value]);
-
-  const problem = value ? slugProblem(value) : null;
-  const availability = useQuery({
-    ...slugQuery(debounced),
-    enabled: debounced === value && debounced !== '' && slugProblem(debounced) === null,
-  });
-
-  const taken =
-    debounced === value &&
-    availability.data?.available === false &&
-    availability.data.reason === 'taken';
-  const trySuggestion = taken && onTaken !== undefined;
-  useEffect(() => {
-    if (trySuggestion) onTaken?.();
-  }, [trySuggestion, onTaken]);
-
-  // A form error wins; otherwise show what the live check found as the person types.
-  const liveError =
-    problem && value.length >= WEDDING_RULES.slug.min
-      ? SLUG_MESSAGES[problem]
-      : availability.data && !availability.data.available && debounced === value && !trySuggestion
-        ? SLUG_MESSAGES[availability.data.reason ?? 'taken']
-        : undefined;
-  const shownError = error ?? liveError;
-  const checking =
-    !shownError &&
-    !problem &&
-    value !== '' &&
-    (debounced !== value || availability.isFetching || trySuggestion);
-  const available = !shownError && !checking && availability.data?.available === true;
-
-  return (
-    <div>
-      <label htmlFor="setup-slug" className="block text-sm font-medium text-ink">
-        Website address
-      </label>
-      <p id="setup-slug-hint" className="mt-1 text-sm text-muted">
-        Guests open your wedding website here. You can change it until the website is published.
-      </p>
-      <div
-        className={cn(
-          'mt-2 flex h-13 w-full items-center overflow-hidden rounded-xl border bg-white focus-within:ring-4',
-          shownError
-            ? 'border-terracotta focus-within:ring-terracotta/15'
-            : 'border-line focus-within:border-champagne focus-within:ring-champagne/25',
-        )}
-      >
-        <span
-          aria-hidden="true"
-          className="flex h-full shrink-0 items-center border-r border-line bg-sand px-3 text-sm text-muted"
-        >
-          makemymarriage.com/w/
-        </span>
-        <input
-          id="setup-slug"
-          autoComplete="off"
-          autoCapitalize="none"
-          spellCheck={false}
-          maxLength={WEDDING_RULES.slug.max}
-          value={value}
-          aria-invalid={shownError ? true : undefined}
-          aria-describedby="setup-slug-hint setup-slug-status"
-          onChange={(e) => onChange(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
-          className="h-full min-w-0 flex-1 bg-transparent px-3 text-base text-ink focus:outline-none focus-visible:outline-none"
-        />
-      </div>
-      <p
-        id="setup-slug-status"
-        aria-live="polite"
-        className={cn(
-          'mt-2 min-h-5 text-sm',
-          shownError ? 'text-terracotta-ink' : available ? 'text-green-ink' : 'text-muted',
-        )}
-      >
-        {shownError ? (
-          shownError
-        ) : checking ? (
-          'Checking…'
-        ) : available ? (
-          <span className="inline-flex items-center gap-1.5">
-            <Check aria-hidden="true" className="size-4 shrink-0" />
-            This address is available.{takenNote && ` ${takenNote}`}
-          </span>
-        ) : null}
-      </p>
-    </div>
   );
 }

@@ -2,6 +2,7 @@ import {
   type CreateWeddingInput,
   dataResponse,
   type SetupStep,
+  type UpdateWeddingInput,
   eventSchema,
   slugAvailabilitySchema,
   weddingSchema,
@@ -21,6 +22,14 @@ export const weddingApi = {
   slugAvailable: (slug: string) =>
     apiRequest(`/wedding/slug-available?slug=${encodeURIComponent(slug)}`, {
       schema: dataResponse(slugAvailabilitySchema),
+    }).then((res) => res.data),
+
+  /** WED-07: send only the details that changed. */
+  update: (changes: UpdateWeddingInput) =>
+    apiRequest('/wedding', {
+      method: 'PATCH',
+      body: changes,
+      schema: dataResponse(weddingSchema),
     }).then((res) => res.data),
 
   setupStep: (step: SetupStep) =>

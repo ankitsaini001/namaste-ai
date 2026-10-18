@@ -10,8 +10,8 @@ test.describe('wedding setup', () => {
     page,
     browser,
   }) => {
-    // Two people sign in and go through setup: give it more than the default 30 seconds.
-    test.slow();
+    // Two people sign in, set up, invite and edit: well over the default 30 seconds.
+    test.setTimeout(150_000);
     await signUp(page, 'Princi Sharma');
     await expect(page.getByText('Step 1 of 3')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Your wedding' })).toBeVisible();
@@ -137,11 +137,38 @@ test.describe('wedding setup', () => {
     await expect(rohit.getByRole('heading', { name: 'Invite someone' })).toHaveCount(0);
     await expect(rohit.getByRole('button', { name: 'Leave this wedding' })).toBeVisible();
     await expectAccessible(rohit);
+    // Settings are for Admins only.
+    await expect(rohit.getByRole('link', { name: 'Settings' })).toHaveCount(0);
+    await rohit.goto('/app/settings');
+    await expect(rohit.getByText(/Only Admins can change the wedding’s settings/)).toBeVisible();
+    await expect(rohit.getByLabel('Wedding title')).toHaveCount(0);
     await rohitBrowser.close();
 
     // Back with Princi: Rohit has joined.
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Planning together (2)' })).toBeVisible();
     await expect(page.getByRole('heading', { name: /Waiting to join/ })).toHaveCount(0);
+
+    // Princi edits the wedding details in Settings (WED-07).
+    await page
+      .getByRole('navigation', { name: 'Main' })
+      .getByRole('link', { name: 'Settings' })
+      .filter({ visible: true })
+      .click();
+    await expect(page.getByRole('heading', { name: 'Wedding details' })).toBeVisible();
+    await expect(page.getByText('This is your current address.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+    await expectAccessible(page);
+    await page.getByLabel('Wedding title').fill('Princi & Akshay Sharma');
+    await page.getByLabel('City').fill('Mussoorie');
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await expect(page.getByText('Saved.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+
+    await page.goto('/app');
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Princi & Akshay Sharma' }),
+    ).toBeVisible();
+    await expect(page.getByText(/· Mussoorie/)).toBeVisible();
   });
 });

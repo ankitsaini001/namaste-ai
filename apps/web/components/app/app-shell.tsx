@@ -1,7 +1,7 @@
 'use client';
 
 import type { Me } from '@mmm/shared';
-import { LayoutDashboard, LogOut, type LucideIcon, Users } from 'lucide-react';
+import { LayoutDashboard, LogOut, type LucideIcon, Settings, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -12,7 +12,13 @@ import { ROLE_LABEL } from '@/lib/organisers-api';
 import { formatWeddingDate, initials } from '@/lib/wedding-format';
 import { useLogout } from './use-logout';
 
-type NavItem = { href: string; label: string; shortLabel?: string; icon: LucideIcon };
+type NavItem = {
+  href: string;
+  label: string;
+  shortLabel?: string;
+  icon: LucideIcon;
+  adminOnly?: boolean;
+};
 
 /**
  * The sections that exist so far (UX brief, app layout). Each feature adds its own: Ceremonies,
@@ -21,7 +27,10 @@ type NavItem = { href: string; label: string; shortLabel?: string; icon: LucideI
 const PLANNING: NavItem[] = [
   { href: '/app', label: 'Dashboard', shortLabel: 'Home', icon: LayoutDashboard },
 ];
-const TEAM: NavItem[] = [{ href: '/app/organisers', label: 'Organisers', icon: Users }];
+const TEAM: NavItem[] = [
+  { href: '/app/organisers', label: 'Organisers', icon: Users },
+  { href: '/app/settings', label: 'Settings', icon: Settings, adminOnly: true },
+];
 
 const isActive = (pathname: string, href: string) =>
   href === '/app' ? pathname === '/app' : pathname === href || pathname.startsWith(`${href}/`);
@@ -40,6 +49,7 @@ export function AppShell({
   const logout = useLogout(onLeave);
   const wedding = me.wedding;
   const roleLabel = me.role === 'admin' || me.role === 'manager' ? ROLE_LABEL[me.role] : null;
+  const team = TEAM.filter((item) => !item.adminOnly || me.role === 'admin');
 
   return (
     <div className="min-h-screen bg-ivory lg:grid lg:grid-cols-[264px_1fr]">
@@ -62,7 +72,7 @@ export function AppShell({
         <nav aria-label="Main" className="mt-6 flex-1">
           <NavList items={PLANNING} pathname={pathname} />
           <div role="separator" className="my-4 border-t border-line" />
-          <NavList items={TEAM} pathname={pathname} />
+          <NavList items={team} pathname={pathname} />
         </nav>
         <div className="border-t border-line pt-4">
           <div className="flex items-center gap-3">
@@ -118,7 +128,7 @@ export function AppShell({
         className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ivory pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
         <ul className="flex">
-          {[...PLANNING, ...TEAM].map((item) => {
+          {[...PLANNING, ...team].map((item) => {
             const active = isActive(pathname, item.href);
             return (
               <li key={item.href} className="flex-1">
