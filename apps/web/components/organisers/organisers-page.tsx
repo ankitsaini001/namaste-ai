@@ -2,14 +2,15 @@
 
 import type { Organiser, OrganiserInvite, OrganiserRole } from '@mmm/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ConfirmPanel, useConfirm } from '@/components/ui/confirm';
 import { Container } from '@/components/ui/container';
 import { heading } from '@/components/ui/typography';
 import { authApi, meQueryKey } from '@/lib/auth-api';
 import { organisersApi, organisersQueryKey, ROLE_LABEL } from '@/lib/organisers-api';
-import { formatDayMonth, initials } from '@/lib/wedding-format';
+import { formatDayMonth, formatStampTime, initials } from '@/lib/wedding-format';
 import { InviteForm } from './invite-form';
 
 /** ORG-01 to ORG-10. Admins manage organisers; Managers see who's helping and can leave. */
@@ -119,6 +120,17 @@ function OrganiserRow({ organiser, canManage }: { organiser: Organiser; canManag
             {organiser.isYou && <span className="ml-2 text-sm font-normal text-muted">(you)</span>}
           </p>
           <p className="truncate text-sm text-muted">{organiser.email}</p>
+          <p className="mt-1 text-xs text-muted">
+            {organiser.added &&
+              `Joined ${formatStampTime(organiser.added.at)}${organiser.added.by ? ` · invited by ${organiser.added.by}` : ''}`}
+            {organiser.lastChanged && (
+              <span className="block">
+                Made {ROLE_LABEL[organiser.role]}
+                {organiser.lastChanged.by && ` by ${organiser.lastChanged.by}`} ·{' '}
+                {formatStampTime(organiser.lastChanged.at)}
+              </span>
+            )}
+          </p>
         </div>
         {canManage ? (
           <div className="flex w-full flex-wrap items-center gap-2 pl-14 sm:w-auto sm:pl-0">
@@ -205,7 +217,8 @@ function InviteRow({ invite, canManage }: { invite: OrganiserInvite; canManage: 
               <Badge tone="countdown">Expired {formatDayMonth(invite.expiresAt)}</Badge>
             ) : (
               <span className="text-muted">
-                Sent {formatDayMonth(invite.sentAt)} · link works until{' '}
+                Sent {formatStampTime(invite.sentAt)}
+                {invite.sentByName && ` by ${invite.sentByName}`} · link works until{' '}
                 {formatDayMonth(invite.expiresAt)}
               </span>
             )}
@@ -299,55 +312,6 @@ function LeaveSection() {
         </p>
       )}
     </section>
-  );
-}
-
-/** Asking once more before something that can't be undone, on a line under the row. */
-function useConfirm() {
-  const [asking, setAsking] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  return {
-    asking,
-    triggerRef,
-    open: () => setAsking(true),
-    close: () => {
-      setAsking(false);
-      requestAnimationFrame(() => triggerRef.current?.focus());
-    },
-  };
-}
-
-function ConfirmPanel({
-  question,
-  confirmLabel,
-  keepLabel = 'Keep',
-  pending,
-  onConfirm,
-  onKeep,
-}: {
-  question: string;
-  confirmLabel: string;
-  keepLabel?: string;
-  pending: boolean;
-  onConfirm: () => void;
-  onKeep: () => void;
-}) {
-  const confirmRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => confirmRef.current?.focus(), []);
-  return (
-    <div
-      role="group"
-      aria-label={question}
-      className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-terracotta-tint px-4 py-3"
-    >
-      <p className="w-full text-sm text-terracotta-ink sm:w-auto sm:flex-1">{question}</p>
-      <Button ref={confirmRef} size="compact" loading={pending} onClick={onConfirm}>
-        {confirmLabel}
-      </Button>
-      <Button variant="ghost" size="compact" disabled={pending} onClick={onKeep}>
-        {keepLabel}
-      </Button>
-    </div>
   );
 }
 

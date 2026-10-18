@@ -2,6 +2,11 @@ import { defineConfig, devices } from '@playwright/test';
 
 const CI = Boolean(process.env.CI);
 
+const withoutUndefined = (env: NodeJS.ProcessEnv) =>
+  Object.fromEntries(
+    Object.entries(env).filter((entry): entry is [string, string] => entry[1] !== undefined),
+  );
+
 /**
  * Browser tests against the real stack: web, API and worker from their production builds, with
  * MongoDB and Mailpit from infra/docker-compose.dev.yml. Locally, servers already running are reused.
@@ -31,6 +36,8 @@ export default defineConfig({
       cwd: '../api',
       url: 'http://localhost:4000/v1/health/ready',
       reuseExistingServer: !CI,
+      // Every test signs someone in; the production limit of 10 codes per IP an hour is too few.
+      env: { ...withoutUndefined(process.env), EMAIL_CODE_IP_LIMIT: '1000' },
     },
     {
       command: 'node dist/worker.js',

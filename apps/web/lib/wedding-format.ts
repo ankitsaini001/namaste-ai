@@ -46,11 +46,43 @@ export function formatDayMonth(iso: string): string {
   }).format(new Date(iso));
 }
 
+/** "18 Oct, 4:30 pm" in IST, with the year only when it isn't this year: for "Last changed" lines. */
+export function formatStampTime(iso: string, now = new Date()): string {
+  const date = new Date(iso);
+  const sameYear =
+    new Intl.DateTimeFormat('en-IN', { year: 'numeric', timeZone: IST_TIME_ZONE }).format(date) ===
+    new Intl.DateTimeFormat('en-IN', { year: 'numeric', timeZone: IST_TIME_ZONE }).format(now);
+  const day = new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    ...(sameYear ? {} : { year: 'numeric' }),
+    timeZone: IST_TIME_ZONE,
+  }).format(date);
+  const time = new Intl.DateTimeFormat('en-IN', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: IST_TIME_ZONE,
+  })
+    .format(date)
+    .toLowerCase();
+  return `${day}, ${time}`;
+}
+
 /** "Princi Sharma" → "PS", for avatars. */
 export function initials(name: string | null, fallback = '?'): string {
   const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return fallback;
   return (parts[0]![0]! + (parts.length > 1 ? parts.at(-1)![0]! : '')).toUpperCase();
+}
+
+/** "Fri, 12 Feb · 4:00 pm – 9:00 pm", noting an end the next morning. */
+export function formatCeremonyWhen(startsAt: string, endsAt: string | null): string {
+  const start = formatCeremonyTime(startsAt);
+  if (!endsAt) return `${start.date} · ${start.time}`;
+  const end = formatCeremonyTime(endsAt);
+  const nextDay = end.date !== start.date ? ' (next day)' : '';
+  return `${start.date} · ${start.time} – ${end.time}${nextDay}`;
 }
 
 export type Countdown = { state: 'upcoming' | 'today' | 'married'; days: number; label: string };

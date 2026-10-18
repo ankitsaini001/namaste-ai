@@ -3,6 +3,7 @@ import {
   countdown,
   formatCeremonyTime,
   formatDayMonth,
+  formatStampTime,
   formatWeddingDate,
   initials,
 } from './wedding-format';
@@ -53,5 +54,16 @@ describe('initials', () => {
     [null, '?'],
   ])('%j → %s', (name, expected) => {
     expect(initials(name)).toBe(expected);
+  });
+});
+
+describe('formatStampTime', () => {
+  const now = new Date('2026-10-18T12:00:00Z');
+  it('shows the IST day and time, and the year only for other years', () => {
+    expect(formatStampTime('2026-10-18T11:00:00.000Z', now)).toBe('18 Oct, 4:30 pm');
+    expect(formatStampTime('2025-06-10T06:30:00.000Z', now)).toBe('10 Jun 2025, 12:00 pm');
+    // 8 pm UTC on 31 Dec 2025 is already 1 Jan 2026 in India: this year.
+    expect(formatStampTime('2025-12-31T20:00:00.000Z', now)).toBe('1 Jan, 1:30 am');
+    expect(formatStampTime('2026-01-01T03:30:00.000Z', now)).toBe('1 Jan, 9:00 am');
   });
 });

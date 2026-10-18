@@ -1,9 +1,16 @@
 'use client';
 
-import { CEREMONY_PRESETS, ceremonyInputSchema, LIMITS, WEDDING_RULES } from '@mmm/shared';
+import {
+  CEREMONY_PRESETS,
+  ceremonyInputSchema,
+  LIMITS,
+  presetDefaultDay,
+  WEDDING_RULES,
+} from '@mmm/shared';
 import { Check, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { TextField } from '@/components/ui/text-field';
 import { cn } from '@/lib/cn';
 import type { CeremonyDraft } from '@/lib/setup-draft';
@@ -17,16 +24,29 @@ const newKey = () =>
     : Math.random().toString(36).slice(2);
 
 /** A preset ceremony on the wedding day at its usual time; both can be changed. */
-export function presetRow(preset: Preset, day: string): CeremonyDraft {
+/**
+ * A preset ceremony at its usual time, on its usual day around the wedding: the day before for
+ * Mehendi, Haldi, Sangeet and Cocktail, the day after for the Reception, and no date for an
+ * Engagement or Roka, which the family chooses (owner's decision, 18 Oct 2026).
+ */
+export function presetRow(preset: Preset, weddingDay: string): CeremonyDraft {
   return {
     key: newKey(),
     type: preset.type,
     name: preset.name,
-    day,
+    day: presetDefaultDay(preset.type, weddingDay) ?? '',
     time: preset.time,
     showOnWebsite: true,
   };
 }
+
+/**
+ * A chip stands for the ceremony it added only while that keeps the preset's name. Once renamed
+ * ("Bride's Mehendi") it belongs to the family: the chip can add another, and only its bin removes
+ * it (owner's decision, 18 Oct 2026).
+ */
+const chipRow = (row: CeremonyDraft, preset: Preset) =>
+  row.type === preset.type && row.name.trim() === preset.name;
 
 const WEDDING_PRESET = CEREMONY_PRESETS.find((preset) => preset.type === 'wedding')!;
 export const weddingRow = (day: string) => presetRow(WEDDING_PRESET, day);
@@ -107,8 +127,8 @@ export function CeremoniesStep({
   const full = value.length >= LIMITS.events;
 
   const togglePreset = (preset: Preset) => {
-    if (value.some((row) => row.type === preset.type)) {
-      onChange(value.filter((row) => row.type !== preset.type));
+    if (value.some((row) => chipRow(row, preset))) {
+      onChange(value.filter((row) => !chipRow(row, preset)));
     } else if (!full) {
       onChange([...value, presetRow(preset, weddingDay)]);
     }
@@ -169,7 +189,7 @@ export function CeremoniesStep({
           className="mt-3 flex flex-wrap gap-2 focus:outline-none"
         >
           {CEREMONY_PRESETS.map((preset) => {
-            const selected = value.some((row) => row.type === preset.type);
+            const selected = value.some((row) => chipRow(row, preset));
             return (
               <button
                 key={preset.type}
@@ -319,26 +339,12 @@ function CeremonyRow({
         </fieldset>
       </div>
 
-      <label className="mt-4 flex min-h-11 cursor-pointer items-center justify-between gap-4">
-        <span className="text-sm font-medium text-ink">Show on wedding website</span>
-        <span className="relative inline-flex shrink-0">
-          <input
-            type="checkbox"
-            role="switch"
-            checked={row.showOnWebsite}
-            onChange={(e) => onChange({ showOnWebsite: e.target.checked })}
-            className="peer sr-only"
-          />
-          <span
-            aria-hidden="true"
-            className="h-7 w-12 rounded-full bg-line transition-colors peer-checked:bg-aubergine peer-focus-visible:outline-2 peer-focus-visible:outline-offset-3 peer-focus-visible:outline-aubergine"
-          />
-          <span
-            aria-hidden="true"
-            className="absolute top-1 left-1 size-5 rounded-full bg-white shadow-card transition-transform peer-checked:translate-x-5"
-          />
-        </span>
-      </label>
+      <Switch
+        className="mt-4"
+        label="Show on wedding website"
+        checked={row.showOnWebsite}
+        onChange={(showOnWebsite) => onChange({ showOnWebsite })}
+      />
     </li>
   );
 }

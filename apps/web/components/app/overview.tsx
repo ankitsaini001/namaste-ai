@@ -207,9 +207,17 @@ function Ceremonies({ events }: { events: WeddingEvent[] }) {
       aria-labelledby="ceremonies"
       className="rounded-2xl border border-line bg-white p-6 shadow-card"
     >
-      <h2 id="ceremonies" className={heading.h3}>
-        Upcoming ceremonies
-      </h2>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="ceremonies" className={heading.h3}>
+          Upcoming ceremonies
+        </h2>
+        <Link
+          href="/app/ceremonies"
+          className="inline-flex min-h-11 items-center text-sm font-medium text-aubergine underline underline-offset-4"
+        >
+          All ceremonies
+        </Link>
+      </div>
       {upcoming.length === 0 ? (
         <p className="mt-4 text-body text-muted">
           {events.length === 0 ? 'No ceremonies yet.' : 'All your ceremonies have taken place.'}
@@ -233,7 +241,14 @@ function Ceremonies({ events }: { events: WeddingEvent[] }) {
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-serif text-lg text-ink">{event.name}</h3>
+                    <h3 className="font-serif text-lg text-ink">
+                      <Link
+                        href={`/app/ceremonies/${event.id}`}
+                        className="hover:text-aubergine hover:underline hover:underline-offset-4"
+                      >
+                        {event.name}
+                      </Link>
+                    </h3>
                     {!event.showOnWebsite && <Badge tone="pending">Private</Badge>}
                     {event.livestreamUrl && <Badge tone="neutral">Live stream</Badge>}
                   </div>

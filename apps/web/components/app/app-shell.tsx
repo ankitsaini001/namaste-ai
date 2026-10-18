@@ -1,7 +1,14 @@
 'use client';
 
 import type { Me } from '@mmm/shared';
-import { LayoutDashboard, LogOut, type LucideIcon, Settings, Users } from 'lucide-react';
+import {
+  CalendarDays,
+  LayoutDashboard,
+  LogOut,
+  type LucideIcon,
+  Settings,
+  Users,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -26,6 +33,7 @@ type NavItem = {
  */
 const PLANNING: NavItem[] = [
   { href: '/app', label: 'Dashboard', shortLabel: 'Home', icon: LayoutDashboard },
+  { href: '/app/ceremonies', label: 'Ceremonies', icon: CalendarDays },
 ];
 const TEAM: NavItem[] = [
   { href: '/app/organisers', label: 'Organisers', icon: Users },

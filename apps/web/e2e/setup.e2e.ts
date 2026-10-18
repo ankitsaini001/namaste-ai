@@ -50,6 +50,8 @@ test.describe('wedding setup', () => {
     await page.getByRole('button', { name: 'Mehendi' }).click();
     const rows = page.getByRole('listitem');
     await expect(rows).toHaveCount(2);
+    // Mehendi starts the day before the wedding (owner's decision, 18 Oct 2026).
+    await expect(rows.nth(1).getByLabel('Date')).toHaveValue(dayFromNow(119));
     await rows.nth(1).getByLabel('Date').fill(dayFromNow(119));
 
     await page.getByRole('button', { name: 'Add another ceremony' }).click();

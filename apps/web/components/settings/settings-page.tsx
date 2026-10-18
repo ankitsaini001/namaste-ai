@@ -12,6 +12,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { ChangeLine } from '@/components/ui/change-line';
 import { Container } from '@/components/ui/container';
 import { TextArea } from '@/components/ui/text-area';
 import { TextField } from '@/components/ui/text-field';
@@ -46,6 +47,14 @@ export function SettingsPage() {
             <h2 id="details-heading" className={heading.h3}>
               Wedding details
             </h2>
+            {wedding.data && (
+              <ChangeLine
+                added={wedding.data.added}
+                lastChanged={wedding.data.lastChanged}
+                addedVerb="Set up"
+                className="mt-1"
+              />
+            )}
             {wedding.isPending ? (
               <p role="status" className="mt-4 text-body text-muted">
                 Loading…
