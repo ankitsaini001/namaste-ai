@@ -10,9 +10,9 @@ A running log of what has been built. Add an entry whenever a major feature is f
 | Item              | Status                                                               |
 | ----------------- | -------------------------------------------------------------------- |
 | Current phase     | Phase 1 — Core (in progress)                                         |
-| Latest feature    | Wedding details in Settings (WED-07, WED-08, SET-01 details)         |
-| Up next           | Ceremonies in full (EVT), then guests (GST); Google sign-in (AUTH-01) when the OAuth client exists |
-| Main branch       | `dev` on GitHub, with login, wedding setup, organisers and wedding details merged |
+| Latest feature    | Ceremonies (EVT-01 to EVT-08) and change tracking                    |
+| Up next           | Guests (GST), then invitations (INV) and RSVP; Google sign-in (AUTH-01) when the OAuth client exists |
+| Main branch       | `dev` on GitHub (up to wedding details); ceremonies is on `feat/ceremonies`, not yet merged |
 | Code checks       | Format, lint, typecheck, tests and build all pass                    |
 
 ## Release phases (PRD §31)
@@ -21,7 +21,7 @@ A running log of what has been built. Add an entry whenever a major feature is f
 | ----------------------- | -------------------------------------------- | ----------- |
 | Foundations             | Monorepo scaffold, local setup, CI           | ✅ Done     |
 | Public homepage         | Marketing page from the UX brief             | ✅ Done     |
-| 1. Core                 | AUTH, WED, ORG, EVT, GST, INV, RSVP, EML, WA, DASH | ⏳ In progress (email-code login, wedding setup and editing, organisers, first overview done) |
+| 1. Core                 | AUTH, WED, ORG, EVT, GST, INV, RSVP, EML, WA, DASH | ⏳ In progress (email-code login, wedding setup and editing, organisers, ceremonies, first overview done) |
 | 2. Guest experience     | WEB, THM, LIVE                               | Not started |
 | 3. Photos and documents | GAL, UPL, QR, DOC                            | Not started |
 | 4. Money and planning   | MON, VEN, TSK, SHOP                          | Not started |
@@ -31,6 +31,87 @@ A running log of what has been built. Add an entry whenever a major feature is f
 ## Feature log
 
 Newest first.
+
+### 7. Ceremonies (EVT-01 to EVT-08) and change tracking — 18 October 2026
+
+**What was built**
+
+- A Ceremonies page (`/app/ceremonies`), in the navigation for every organiser:
+  - **List:** every ceremony by date and time, with its times, venue, dress code, and Private,
+    Live stream and Done badges. It shows "5 of 20".
+  - **Add** (`/new`): choose a preset or "Something else", and its usual day and time are filled
+    in. Then the details: end time, venue, address, Google Maps link (with "Open in Google Maps"),
+    dress code, a description for guests, a YouTube Live link, and "Show on wedding website".
+  - **Edit:** every detail. "Save changes" sends only what changed, and "Undo changes" puts it
+    back. An end time earlier than the start counts as the next morning ("7:00 pm – 1:00 am
+    (next day)").
+  - **Delete:** first says what it affects ("Its photo album will be deleted. Nothing else is
+    linked to it yet."; later features add their counts). A wedding keeps at least one ceremony.
+- Every new ceremony gets its own photo album, which follows its name; deleting the ceremony
+  deletes the album. At most 20 ceremonies.
+- The overview's ceremonies link to their pages, with an "All ceremonies" link.
+- Setup step 2, as decided: Mehendi, Haldi, Sangeet and Cocktail start the day before the
+  wedding, Reception the day after, Engagement and Roka with an empty date to fill in. A renamed
+  ceremony is no longer tied to its chip, so a second Mehendi is one tap.
+- Change tracking, as decided: small grey lines show who added and last changed things, with the
+  date and time in IST:
+  - each ceremony (card and page)
+  - Wedding details in Settings
+  - organisers ("Joined … · invited by …", "Made Admin by …")
+  - invitations ("Sent … by …")
+- API: `POST /v1/events`, `GET /v1/events/:id` (`?include=impact`), `PATCH` and `DELETE
+  /v1/events/:id`, for Admins and Managers; `added` and `lastChanged` on weddings, ceremonies and
+  organisers; `sentByName` on invitations.
+- The API's login-code limit per IP can be set (`EMAIL_CODE_IP_LIMIT`, default 10), so the browser
+  tests' own API isn't blocked as tests are added.
+
+**Decisions**
+
+- Only a Google Maps link on the form; the map location for the future embedded map comes from the
+  venue and address.
+- At least one ceremony always (new error code `LAST_EVENT`), even when two are deleted at once.
+- A ceremony's album keeps its name; the type is fixed after creation.
+- Change tracking shows the latest change only, not a history, and every later feature follows
+  the same rule. It isn't in the documents; it's recorded in `CLAUDE.md`.
+- Left for later: cover images (uploads), "invite all existing guests" when adding (Guests), and a
+  map preview on the organiser's screen (website, needs a Google Maps key).
+
+**Verification**
+
+- 271 unit and database tests pass (API 132, web 52, shared 83, email templates 4), plus format,
+  lint, typecheck and build. The new database tests cover adding with an album, the order, partial
+  edits by a Manager with "Last changed by", the end-time rule, deleting and the last-ceremony rule
+  (also with two deletions at once), the 20 limit and tenancy, plus who invited organisers,
+  changed their role and resent an invitation.
+- 10 Playwright tests pass at desktop and phone sizes. The new one adds a Sangeet (checking its
+  default day and time, the next-morning end, and a bad maps link), renames it, makes it private,
+  deletes it after the confirmation, and checks the last ceremony can't be deleted. axe finds no
+  WCAG 2.1 AA violations on the list, add and edit pages or the confirmation. The setup test checks
+  that Mehendi starts the day before.
+- Screenshots reviewed at 390px and 1440px, with no sideways scrolling.
+- Manual QA on 18 October with an Admin and a Manager:
+  - a Manager's edit and its change line
+  - equal start and end times, and a Vimeo link
+  - Undo
+  - the album rename
+  - a missing or mistyped ceremony address
+  - Keep on the delete confirmation
+  - the Organisers change lines
+  - the 20-ceremony limit
+
+  Fixed from it: focus now moves to "Delete ceremony" once the impact has loaded, and a mistyped
+  address says "Ceremony not found".
+
+**Known gaps and follow-ups**
+
+- Deleting a ceremony will also remove invitations, unlink tasks, shopping, expenses and vendors,
+  and move photos to "General" as those features arrive; the confirmation already has room for it.
+- Not built: cover images, "invite all existing guests" when adding (with GST), live-stream
+  display (LIVE, Phase 2), and the embedded map (WEB).
+- Two people editing the same ceremony at once: the later save wins (the API Design gives version
+  checks only to guests and expenses).
+
+**Commits:** `57f17c1` … the commit adding this entry, on `feat/ceremonies` (4 commits).
 
 ### 6. Wedding details in Settings (WED-07, WED-08, SET-01) — 18 October 2026
 

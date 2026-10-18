@@ -51,6 +51,9 @@ couple, date, city and website address, then the ceremonies, then "Invite your f
 be skipped). The wedding overview is at http://localhost:3000/app. To go through setup again, log
 in with a new email address (each account belongs to one wedding).
 
+**Ceremonies:** add, change and delete ceremonies at http://localhost:3000/app/ceremonies (venue,
+address, Google Maps link, dress code, YouTube Live link, and whether it shows on the website).
+
 **Edit the wedding:** Admins change the couple, title, date, city, description and website address
 at http://localhost:3000/app/settings.
 
@@ -149,7 +152,9 @@ infra/docker-compose.dev.yml ps`.
 - **No login code in Mailpit:** the worker sends emails. Check that it's running and logged
   `Worker ready (job types: send_email)`.
 - **"Too many code requests" while testing locally:** limits are per IP and per email (10 code
-  requests per IP an hour; a full `pnpm test:e2e` run uses 8). Clear them
+  requests per IP an hour; a full `pnpm test:e2e` run uses 10). In CI the browser tests start their
+  own API with a higher limit; locally, set `EMAIL_CODE_IP_LIMIT=1000` in `apps/api/.env`, or clear
+  them
   with `docker compose -f infra/docker-compose.dev.yml exec mongo mongosh makemymarriage --eval 'db.rateLimits.deleteMany({})'`.
 - **Start the local database from scratch:** `docker compose -f infra/docker-compose.dev.yml down -v`
   deletes the MongoDB volume; the next `pnpm infra:up` creates a fresh replica set.

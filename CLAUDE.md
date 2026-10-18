@@ -151,6 +151,19 @@ These decisions override the PDFs:
   wedding before the user has given their name.
 - The Organisers page is in the navigation for Managers too (read-only, with "Leave this
   wedding"); the UX brief lists it under the Admin-only items.
+- Ceremonies (EVT): the form has only a "Google Maps link"; `mapEmbedQuery` (the PRD's "map
+  location for the embedded map") is worked out from the venue name and address. An end time
+  earlier than the start means the next morning. A wedding keeps at least one ceremony: deleting
+  the last returns 422 `LAST_EVENT` (a code the API Design doesn't list). A ceremony's album is
+  renamed with it. The type can't change after creation. Cover images, "invite existing guests"
+  when adding (EVT-05) and the organiser-side map preview wait for uploads, Guests and the website.
+- Preset ceremonies start on their usual day: Mehendi, Haldi, Sangeet and Cocktail the day before
+  the wedding, Reception the day after, Wedding on the day, Engagement and Roka with no date. In
+  setup, a chip adds and removes its ceremony only while it keeps the preset's name; a renamed one
+  is removed with its bin, and the chip adds another.
+- Change tracking (owner's decision, not in the documents): everything organisers change records
+  who added it and who last changed it, shown as a small "Added by … / Last changed by … · 18 Oct,
+  4:30 pm" line in its section. Only the latest change, not a history.
 - Editing the wedding (WED-07): the date rule (today to 3 years ahead) applies only when the date
   changes, so a wedding that has happened keeps its date. Until SET-04 lets Admins choose it, the
   upload closing date moves with the wedding date (30 days after). The website's main heading
@@ -254,6 +267,15 @@ CI (`.github/workflows/ci.yml`) runs `pnpm install --frozen-lockfile`, `pnpm for
   in `send-email.handler.ts` and removed once the email is sent.
 - Times of day are entered and shown in IST whatever the browser's time zone: use `istToUtcIso`,
   `utcToIstParts` and `todayInIst` from `@mmm/shared` (and `formatCeremonyTime` in the web app).
+- Change tracking: records keep `createdBy` and `changedBy`/`changedAt` (set by the API on
+  organisers' changes only, never by system updates; don't use `updatedAt`). DTOs return `added`
+  and `lastChanged` as `{ by, at }` via `changeStamp()` (`src/common/change-stamp.ts`) with names
+  from `UsersService.namesFor`; the web shows them with `ChangeLine`. Every new feature does the
+  same.
+- Shared web pieces: `ConfirmPanel` and `useConfirm` (`components/ui/confirm.tsx`) for "are you
+  sure" steps under a row or section, and `Switch` (`components/ui/switch.tsx`).
+- `EMAIL_CODE_IP_LIMIT` (API env, default 10) sets the login-code limit per IP an hour; the
+  browser tests' own API uses 1000 (`playwright.config.ts`).
 - Settings (`/app/settings`, Admin-only in the navigation) gets a section per group of settings
   as their features land. The website-address field (`components/wedding/slug-field.tsx`) is
   shared by setup and Settings.
