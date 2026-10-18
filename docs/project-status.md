@@ -12,7 +12,7 @@ A running log of what has been built. Add an entry whenever a major feature is f
 | Current phase     | Phase 1 — Core (in progress)                                         |
 | Latest feature    | Organisers (ORG-01 to ORG-10), setup step 3 and the app navigation   |
 | Up next           | Ceremonies in full (EVT), then guests (GST); Google sign-in (AUTH-01) when the OAuth client exists |
-| Main branch       | `dev` on GitHub (login and wedding setup merged); organisers is on `feat/organisers`, not yet merged |
+| Main branch       | `dev` on GitHub, with login, wedding setup and organisers merged      |
 | Code checks       | Format, lint, typecheck, tests and build all pass                    |
 
 ## Release phases (PRD §31)
@@ -112,7 +112,8 @@ Newest first.
 - Open product questions from the last QA: preset ceremony dates, and what a chip does to a
   renamed ceremony.
 
-**Commits:** `20c7caa` … the commit adding this entry, on `feat/organisers` (5 commits).
+**Commits:** `20c7caa` … the commit marking this entry merged, merged into `dev` (branch
+`feat/organisers`, 6 commits).
 
 ### 4. Wedding setup and overview (WED, first part of DASH) — 17 October 2026
 
