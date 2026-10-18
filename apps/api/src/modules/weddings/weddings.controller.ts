@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -15,7 +16,7 @@ import { Roles, RolesGuard } from '../session/roles.guard';
 import { SessionGuard } from '../session/session.guard';
 import { WeddingMemberGuard } from '../session/wedding-member.guard';
 import { UsersService } from '../users/users.service';
-import { CreateWeddingDto, SetupStepDto, SlugQueryDto } from './wedding.dto';
+import { CreateWeddingDto, SetupStepDto, SlugQueryDto, UpdateWeddingDto } from './wedding.dto';
 import { WeddingsService } from './weddings.service';
 
 /** The caller's wedding (API Design §13). No wedding ID in the path: it comes from the session. */
@@ -49,6 +50,18 @@ export class WeddingsController {
     const wedding = await this.weddings.findById(auth.weddingId);
     if (!wedding)
       throw new AppException(HttpStatus.NOT_FOUND, 'NOT_FOUND', "We couldn't find your wedding.");
+    return { data: this.weddings.toDto(wedding) };
+  }
+
+  /** WED-07: an Admin changes the wedding's details (API Design §13.3). */
+  @Patch()
+  @UseGuards(WeddingMemberGuard, RolesGuard)
+  @Roles('admin')
+  async update(
+    @CurrentAuth() auth: WeddingContext,
+    @Body() body: UpdateWeddingDto,
+  ): Promise<{ data: Wedding }> {
+    const wedding = await this.weddings.update(auth.weddingId, body);
     return { data: this.weddings.toDto(wedding) };
   }
 

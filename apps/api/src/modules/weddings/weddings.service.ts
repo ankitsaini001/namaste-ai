@@ -7,6 +7,9 @@ import {
   SETUP_STEPS,
   type SetupStep,
   type SlugAvailability,
+  todayInIst,
+  type UpdateWedding,
+  weddingDateProblem,
   slugProblem,
   SLUG_MESSAGES,
   type Wedding as WeddingDto,
@@ -21,6 +24,7 @@ import { PRESET_GROUPS, Wedding, type WeddingDocument } from './wedding.schema';
 
 const DUPLICATE_KEY = 11000;
 const UPLOADS_OPEN_DAYS = 30;
+const DAY_MS = 24 * 60 * 60_000;
 
 type DuplicateKeyError = { code?: number; keyPattern?: Record<string, unknown> };
 
@@ -138,6 +142,66 @@ export class WeddingsService {
     if (SETUP_STEPS.indexOf(step) > SETUP_STEPS.indexOf(wedding.setupStep)) {
       wedding.setupStep = step;
       await wedding.save();
+    }
+    return wedding;
+  }
+
+  /**
+   * WED-07, WED-08: an Admin changes the wedding's details. Only what's sent changes. A date that
+   * changes must be within the usual range; an unchanged one may already have passed.
+   */
+  async update(
+    weddingId: Types.ObjectId,
+    changes: UpdateWedding,
+    now = new Date(),
+  ): Promise<WeddingDocument> {
+    const wedding = await this.weddings.findById(weddingId);
+    if (!wedding) throw weddingNotFound();
+
+    if (changes.slug !== undefined && changes.slug !== wedding.slug) {
+      if (wedding.slugLocked) {
+        throw new AppException(
+          HttpStatus.UNPROCESSABLE_ENTITY,
+          'SLUG_LOCKED',
+          'Your website address can’t change after the website has been published.',
+          'slug',
+        );
+      }
+      if (await this.weddings.exists({ slug: changes.slug })) throw slugTaken();
+      wedding.slug = changes.slug;
+    }
+
+    if (changes.date !== undefined && changes.date !== wedding.date.toISOString().slice(0, 10)) {
+      const problem = weddingDateProblem(changes.date, todayInIst(now));
+      if (problem) {
+        throw new AppException(HttpStatus.BAD_REQUEST, 'VALIDATION_FAILED', problem, 'date');
+      }
+      wedding.date = calendarDayToDate(changes.date);
+      // Uploads close 30 days after the main date (UPL-08); choosing it by hand comes with SET-04.
+      wedding.settings.uploads.closesAt = new Date(
+        wedding.date.getTime() + UPLOADS_OPEN_DAYS * DAY_MS,
+      );
+    }
+
+    // The website heading follows the names until someone writes their own (website editor).
+    const headingFollowsNames =
+      wedding.website.content.heroHeading === `${wedding.brideName} & ${wedding.groomName}`;
+    if (changes.brideName !== undefined) wedding.brideName = changes.brideName;
+    if (changes.groomName !== undefined) wedding.groomName = changes.groomName;
+    if (changes.title !== undefined) wedding.title = changes.title;
+    if (changes.city !== undefined) wedding.city = changes.city;
+    if (changes.description !== undefined) wedding.description = changes.description;
+    if (headingFollowsNames) {
+      wedding.website.content.heroHeading = `${wedding.brideName} & ${wedding.groomName}`;
+    }
+
+    try {
+      await wedding.save();
+    } catch (error) {
+      // Another wedding took the address at the same moment (slug is unique).
+      const { code, keyPattern } = error as DuplicateKeyError;
+      if (code === DUPLICATE_KEY && keyPattern?.slug) throw slugTaken();
+      throw error;
     }
     return wedding;
   }

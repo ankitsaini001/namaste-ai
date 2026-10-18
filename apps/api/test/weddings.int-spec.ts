@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { MongooseModule, getConnectionToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
 import { addYears, meSchema, todayInIst, weddingSchema } from '@mmm/shared';
-import type { Connection } from 'mongoose';
+import { type Connection, Types } from 'mongoose';
 import request from 'supertest';
 import { configureApp } from '../src/app.setup';
 import { AuthModule } from '../src/modules/auth/auth.module';
@@ -285,6 +285,127 @@ describe('wedding setup (WED-01 to WED-06, WED-09)', () => {
       expect(
         (await get('/events', b.cookie).expect(200)).body.data.map((e: { name: string }) => e.name),
       ).toEqual(['B Haldi']);
+    });
+  });
+
+  describe('PATCH /v1/wedding (WED-07, WED-08)', () => {
+    const patch = (cookie: string, body: object) =>
+      request(app.getHttpServer())
+        .patch('/v1/wedding')
+        .set('Origin', WEB_ORIGIN)
+        .set('Cookie', cookie)
+        .send(body);
+
+    /** An Admin with a new wedding; returns their cookie and the wedding's id and address. */
+    const newWedding = async () => {
+      const { cookie } = await newUser();
+      const body = input();
+      const res = await post('/wedding', cookie, body).expect(201);
+      return { cookie, id: res.body.data.id as string, slug: body.slug };
+    };
+    const stored = (id: string) =>
+      db.collection('weddings').findOne({ _id: new Types.ObjectId(id) });
+
+    it('changes only what is sent', async () => {
+      const { cookie, id } = await newWedding();
+      const res = await patch(cookie, {
+        title: ' Princi & Akshay Verma ',
+        city: 'Mussoorie',
+      }).expect(200);
+      expect(res.body.data).toMatchObject({
+        title: 'Princi & Akshay Verma',
+        city: 'Mussoorie',
+        brideName: 'Princi',
+        date: `${weddingDay}T00:00:00.000Z`,
+      });
+      const me = meSchema.parse((await get('/me', cookie).expect(200)).body.data);
+      expect(me.wedding?.title).toBe('Princi & Akshay Verma');
+      expect((await stored(id))?.description).toBeNull();
+
+      await patch(cookie, { description: 'Two families, one celebration.' }).expect(200);
+      await patch(cookie, { description: '' }).expect(200);
+      expect((await stored(id))?.description).toBeNull();
+    });
+
+    it('moves the upload closing date with the wedding date', async () => {
+      const { cookie, id } = await newWedding();
+      const newDay = addYears(todayInIst(), 2);
+      await patch(cookie, { date: newDay }).expect(200);
+      const wedding = await stored(id);
+      expect(wedding?.date.toISOString()).toBe(`${newDay}T00:00:00.000Z`);
+      expect(wedding?.settings.uploads.closesAt.toISOString().slice(0, 10)).toBe(
+        new Date(Date.parse(newDay) + 30 * 864e5).toISOString().slice(0, 10),
+      );
+    });
+
+    it('checks a changed date, but lets a past wedding keep its date', async () => {
+      const { cookie, id } = await newWedding();
+      const res = await patch(cookie, { date: '2020-01-01' }).expect(400);
+      expect(res.body.error).toMatchObject({ code: 'VALIDATION_FAILED', field: 'date' });
+
+      // The wedding has happened: the date can stay while other details change.
+      await db
+        .collection('weddings')
+        .updateOne(
+          { _id: new Types.ObjectId(id) },
+          { $set: { date: new Date('2026-01-10T00:00:00Z') } },
+        );
+      await patch(cookie, { date: '2026-01-10', title: 'Still married' }).expect(200);
+    });
+
+    it('keeps the website heading in step with the names until it is edited', async () => {
+      const { cookie, id } = await newWedding();
+      await patch(cookie, { groomName: 'Akshay Verma' }).expect(200);
+      expect((await stored(id))?.website.content.heroHeading).toBe('Princi & Akshay Verma');
+
+      await db
+        .collection('weddings')
+        .updateOne(
+          { _id: new Types.ObjectId(id) },
+          { $set: { 'website.content.heroHeading': 'Our day' } },
+        );
+      await patch(cookie, { brideName: 'Princi S' }).expect(200);
+      expect((await stored(id))?.website.content.heroHeading).toBe('Our day');
+    });
+
+    it('changes the website address only to a free one, and not once published (WED-08)', async () => {
+      const { cookie, id, slug } = await newWedding();
+      const other = await newWedding();
+      await patch(cookie, { slug }).expect(200); // its own address: no change
+      const taken = await patch(cookie, { slug: other.slug }).expect(409);
+      expect(taken.body.error).toMatchObject({ code: 'SLUG_TAKEN', field: 'slug' });
+      await patch(cookie, { slug: 'admin' }).expect(400);
+      await patch(cookie, { slug: `${slug}-new` }).expect(200);
+      expect((await stored(id))?.slug).toBe(`${slug}-new`);
+
+      await db
+        .collection('weddings')
+        .updateOne({ _id: new Types.ObjectId(id) }, { $set: { slugLocked: true } });
+      const locked = await patch(cookie, { slug: `${slug}-newer` }).expect(422);
+      expect(locked.body.error).toMatchObject({ code: 'SLUG_LOCKED', field: 'slug' });
+    });
+
+    it('is for Admins of a wedding, with at least one change', async () => {
+      const { cookie, id } = await newWedding();
+      // Nothing to change: the screen never sends this, so the general message is enough.
+      expect((await patch(cookie, {}).expect(400)).body.error.code).toBe('VALIDATION_FAILED');
+
+      const manager = await newUser();
+      const managerUser = await db.collection('users').findOne({ email: manager.email });
+      await db.collection('memberships').insertOne({
+        weddingId: new Types.ObjectId(id),
+        userId: managerUser!._id,
+        role: 'manager',
+        joinedAt: new Date(),
+      });
+      expect((await patch(manager.cookie, { city: 'Goa' }).expect(403)).body.error.code).toBe(
+        'FORBIDDEN',
+      );
+
+      const outsider = await newUser();
+      expect((await patch(outsider.cookie, { city: 'Goa' }).expect(403)).body.error.code).toBe(
+        'NO_WEDDING',
+      );
     });
   });
 });
