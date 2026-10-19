@@ -12,7 +12,7 @@ A running log of what has been built. Add an entry whenever a major feature is f
 | Current phase     | Phase 1 — Core (in progress)                                         |
 | Latest feature    | Ceremonies (EVT-01 to EVT-08) and change tracking                    |
 | Up next           | Guests (GST), then invitations (INV) and RSVP; Google sign-in (AUTH-01) when the OAuth client exists |
-| Main branch       | `dev` on GitHub (up to wedding details); ceremonies is on `feat/ceremonies`, not yet merged |
+| Main branch       | `dev` on GitHub, with everything up to ceremonies merged             |
 | Code checks       | Format, lint, typecheck, tests and build all pass                    |
 
 ## Release phases (PRD §31)
@@ -111,7 +111,8 @@ Newest first.
 - Two people editing the same ceremony at once: the later save wins (the API Design gives version
   checks only to guests and expenses).
 
-**Commits:** `57f17c1` … the commit adding this entry, on `feat/ceremonies` (4 commits).
+**Commits:** `57f17c1` … the commit marking this entry merged, merged into `dev` (branch
+`feat/ceremonies`, 5 commits).
 
 ### 6. Wedding details in Settings (WED-07, WED-08, SET-01) — 18 October 2026
 
