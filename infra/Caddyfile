@@ -1,0 +1,8 @@
+# HTTPS for the API (System Design §19.1). Caddy gets and renews the certificate by itself.
+# API_HOST comes from infra/.env: api.<domain>, or <ip-with-dashes>.sslip.io until the domain
+# is set up. Caddy replaces any X-Forwarded-For a visitor sends with their real address, which
+# the API trusts (TRUST_PROXY), so rate limits see each visitor.
+{$API_HOST} {
+	encode zstd gzip
+	reverse_proxy api:4000
+}

@@ -1,0 +1,67 @@
+# The API server (System Design §19.1): Caddy gives the API its HTTPS address, and the worker
+# sends emails from the job queue. The website is on Vercel and the database on MongoDB Atlas.
+# Setup and updates: infra/README.md. From the repository root:
+#   docker compose -f infra/docker-compose.prod.yml up -d --build
+name: mmm
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '5'
+
+# The API and the worker run the same image with the same settings.
+x-app: &app
+  build:
+    context: ..
+    dockerfile: apps/api/Dockerfile
+  image: mmm-api:latest
+  # Copied from apps/api/.env.example on the server and filled in (never committed).
+  env_file: ../apps/api/.env
+  init: true
+  restart: unless-stopped
+  logging: *logging
+
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      API_HOST: ${API_HOST:?Set API_HOST in infra/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates; keeping them avoids asking for new ones on every restart.
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    logging: *logging
+
+  api:
+    <<: *app
+    environment:
+      # Caddy sends requests to api:4000.
+      PORT: '4000'
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:4000/v1/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  worker:
+    <<: *app
+    command: ['node', '--enable-source-maps', 'dist/worker.js']
+
+volumes:
+  caddy-data:
+  caddy-config:

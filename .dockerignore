@@ -1,0 +1,14 @@
+# Keeps the API image's build context small, and keeps secrets and private documents out of it.
+.git
+**/node_modules
+**/dist
+**/dist-worker
+**/.next
+**/.turbo
+**/*.tsbuildinfo
+**/coverage
+**/playwright-report
+**/test-results
+**/.env
+**/.env.*
+docs
