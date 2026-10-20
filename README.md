@@ -12,9 +12,10 @@ This repository is a Turborepo + pnpm monorepo:
 | `apps/api`                 | NestJS 11 + Mongoose 8 backend: HTTP API (`src/main.ts`) and background worker (`src/worker.ts`) |
 | `packages/shared`          | `@mmm/shared`: zod schemas, enums, limits and error codes used by both apps                      |
 | `packages/email-templates` | `@mmm/email-templates`: email designs (React Email)                                              |
-| `infra/`                   | Docker Compose for local MongoDB and Mailpit                                                     |
+| `infra/`                   | Docker Compose for local MongoDB and Mailpit; the API server's setup                             |
 
-Project conventions and architecture rules are in [CLAUDE.md](CLAUDE.md).
+Project conventions and architecture rules are in [CLAUDE.md](CLAUDE.md). Deploying (Vercel, the
+API server, MongoDB Atlas, Resend) is described in [infra/README.md](infra/README.md).
 
 ## Prerequisites
 

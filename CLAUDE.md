@@ -58,7 +58,8 @@ Don't log small fixes or refactors on their own; fold them into the next feature
   Built with tsup to ESM + CJS; apps import the built `dist/`.
 - `packages/email-templates` (`@mmm/email-templates`): React Email designs, rendered to subject,
   HTML and text. Built like `@mmm/shared`.
-- `infra/`: local Docker Compose now; production compose, Caddyfile and media worker later.
+- `infra/`: local Docker Compose, and the API server's compose file and Caddyfile
+  (`infra/README.md` describes deploying everything); the media worker later.
 - Database MongoDB Atlas (Mumbai); files in Cloudflare R2 via a Media Worker; email via Resend.
 
 Use the major versions above. Upgrading a major (for example NestJS 12, Mongoose 9) is a separate,
@@ -129,7 +130,12 @@ These decisions override the PDFs:
 - Health: `GET /v1/health` (liveness, `{ "status": "ok" }`) and `GET /v1/health/ready`
   (also pings MongoDB; 503 `SERVICE_UNAVAILABLE` when not ready).
 - Local development: web, api and worker run on the developer's machine; only MongoDB (replica
-  set) and Mailpit run in Docker. The apps are containerised with the deployment work.
+  set) and Mailpit run in Docker. On the server, the API and the worker run in Docker
+  (`apps/api/Dockerfile`, `infra/docker-compose.prod.yml`). Until GitHub Actions deploys (System
+  Design §19.2), the server builds the image from a clone of the repository.
+- Before the domain is set up, the API's address is `<server-ip-with-dashes>.sslip.io` (so Caddy
+  can get a certificate) and the website is on `<project>.vercel.app`; logging in waits for the
+  domain, since the login cookie needs the website and the API under one domain.
 - Tests use **Vitest** everywhere (the API via `unplugin-swc`), with Supertest for HTTP tests,
   Testcontainers for real-database tests and Playwright for end-to-end tests. No Jest.
 - Next.js 16 uses `proxy.ts` (formerly `middleware.ts`) for the login-cookie redirect.
@@ -283,6 +289,11 @@ CI (`.github/workflows/ci.yml`) runs `pnpm install --frozen-lockfile`, `pnpm for
   running them together can delete the route types the typecheck needs.
 - After switching git branches while `pnpm dev` runs, run `pnpm build`: the package watchers may
   have rebuilt `@mmm/shared` or `@mmm/email-templates` from the other branch's files.
+- Deploying: `infra/README.md`. Vercel's Root Directory is `apps/web`; `apps/web/vercel.json`
+  sets the build command (Turbo builds `@mmm/shared` first) and the region `bom1`. The API image
+  copies each workspace package it uses by name: when the API starts using a new package, add it
+  to `apps/api/Dockerfile`. New API settings go into the server's `apps/api/.env` list in
+  `infra/README.md` too.
 - Web routes: `/setup` for users without a wedding (and the Admin's step 3), `/app/*` for
   everything else, `/join/:token` for organiser invitations. Pages under `/app` render inside
   `SignedInShell` (`app/(dashboard)/app/layout.tsx`), which does the redirects from the `/me`
